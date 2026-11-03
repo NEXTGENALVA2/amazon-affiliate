@@ -832,33 +832,41 @@ export default function App() {
 
         {/* Section 4: Video Lab Reviews Spotlight */}
         {videoReviewProducts.length > 0 && (
-          <section id="video-reviews" className="space-y-6 pt-4">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-              <div>
+          <section id="video-reviews" className="space-y-5 pt-4 sm:space-y-6">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,360px)] md:items-end md:gap-6">
+              <div className="min-w-0">
                 <div className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
                   Hands-On Video Testing Lab
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-950 tracking-tight leading-tight">
                   Watch Video Reviews Before You Buy on Amazon
                 </h2>
               </div>
-              <p className="text-xs text-slate-500 max-w-sm">
+              <p className="text-xs sm:text-sm text-slate-500 md:justify-self-end">
                 Acoustic noise tests, cat food taste & nutrition reviews, protein shake mixability tests, and dual-zone air frying demonstrations.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${
+              videoReviewProducts.length === 1
+                ? ''
+                : videoReviewProducts.length === 2
+                  ? 'md:grid-cols-2'
+                  : 'md:grid-cols-2 xl:grid-cols-3'
+            }`}>
               {videoReviewProducts.slice(0, 3).map((item) => (
                 <div
                   key={item.id}
                   onClick={() => handleSelectProduct(item)}
-                  className="group bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer flex flex-col"
+                  className={`group w-full bg-white rounded-2xl sm:rounded-3xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer flex flex-col ${
+                    videoReviewProducts.length === 1 ? 'mx-auto max-w-2xl' : ''
+                  }`}
                 >
-                  <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                  <div className="relative aspect-video min-h-0 bg-slate-950 overflow-hidden">
                     <img
                       src={item.image}
                       alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-contain p-1 sm:p-2"
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/20 transition-colors flex items-center justify-center">
@@ -871,10 +879,10 @@ export default function App() {
                     </span>
                   </div>
 
-                  <div className="p-5 space-y-2 flex-1 flex flex-col justify-between">
+                  <div className="p-3.5 sm:p-5 space-y-2 flex-1 flex flex-col justify-between">
                     <div>
-                      <div className="text-xs text-slate-500 font-semibold uppercase">{item.brand} · {item.category}</div>
-                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-1">
+                      <div className="text-[10px] sm:text-xs text-slate-500 font-semibold uppercase line-clamp-1">{item.brand} · {item.category}</div>
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2">
                         {item.title}
                       </h3>
                     </div>
