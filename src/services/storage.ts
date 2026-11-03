@@ -15,8 +15,8 @@ export async function uploadImageToSupabase(file: File): Promise<string | null> 
   });
 
   if (error) {
-    console.warn('Supabase image upload failed', error);
-    return null;
+    console.error('Supabase image upload failed', error);
+    throw new Error(`Image upload failed: ${error.message}`);
   }
 
   const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);

@@ -8,6 +8,8 @@ import {
   Trash2,
   CheckCircle,
   Upload,
+  ChevronLeft,
+  ChevronRight,
   Star,
   Check,
   AlertCircle,
@@ -95,6 +97,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   ]);
   const [newFeatureText, setNewFeatureText] = useState('');
   const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
+  const [draggedVariantImage, setDraggedVariantImage] = useState<{ variantId: string | null; index: number } | null>(null);
 
   useEffect(() => {
     if (productToEdit) {
@@ -132,6 +135,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       // Load variants
       setVariants(productToEdit.variants && Array.isArray(productToEdit.variants) ? productToEdit.variants : []);
       setNewVarImages([]);
+      setDraggedVariantImage(null);
 
       setVideoType(productToEdit.videoType || 'none');
       setVideoUrl(productToEdit.videoUrl || '');
@@ -154,6 +158,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setCoverIndex(0);
       setVariants([]);
       setNewVarImages([]);
+      setDraggedVariantImage(null);
       setVideoType('youtube');
       setVideoUrl('https://www.youtube.com/watch?v=kYJv6uS8Vnk');
       setBadge("Amazon's Choice");
@@ -361,32 +366,25 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       const uploadedUrls: string[] = [];
       for (const file of files.slice(0, remainingSlots)) {
         const uploadedUrl = await uploadImageToSupabase(file);
-        if (uploadedUrl) {
-          uploadedUrls.push(uploadedUrl);
-          continue;
+        if (!uploadedUrl) {
+          throw new Error('Supabase Storage is not configured. Configure the product-images bucket before uploading variant photos.');
         }
-
-        const reader = new FileReader();
-        const result = await new Promise<string | null>((resolve) => {
-          reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-          reader.onerror = () => resolve(null);
-          reader.readAsDataURL(file);
-        });
-        if (result) uploadedUrls.push(result);
+        uploadedUrls.push(uploadedUrl);
       }
 
       if (variantId) {
         setVariants((previous) => previous.map((variant) => {
           if (variant.id !== variantId) return variant;
-          const gallery = [...currentImages, ...uploadedUrls].slice(0, 20);
+          const gallery = [...getVariantImages(variant), ...uploadedUrls].slice(0, 20);
           return { ...variant, image: gallery[0], gallery };
         }));
       } else {
         setNewVarImages((previous) => [...previous, ...uploadedUrls].slice(0, 20));
       }
     } catch (error) {
-      console.warn('Variant image upload failed', error);
-      alert('Variant image upload failed. Please try again.');
+      console.error('Variant image upload failed', error);
+      const message = error instanceof Error ? error.message : 'Unknown upload error';
+      alert(`Variant image upload failed. ${message}`);
     } finally {
       setIsUploadingVariantImages(false);
       input.value = '';
@@ -406,8 +404,48 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
     setNewVarImages((previous) => previous.filter((_, index) => index !== imageIndex));
   };
 
+  const moveImage = (images: string[], fromIndex: number, toIndex: number): string[] => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= images.length || toIndex >= images.length) {
+      return images;
+    }
+    const updated = [...images];
+    const [image] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, image);
+    return updated;
+  };
+
+  const handleMoveVariantImage = (variantId: string, fromIndex: number, toIndex: number) => {
+    setVariants((previous) => previous.map((variant) => {
+      if (variant.id !== variantId) return variant;
+      const gallery = moveImage(getVariantImages(variant), fromIndex, toIndex);
+      return { ...variant, image: gallery[0], gallery };
+    }));
+  };
+
+  const handleMoveNewVariantImage = (fromIndex: number, toIndex: number) => {
+    setNewVarImages((previous) => moveImage(previous, fromIndex, toIndex));
+  };
+
+  const handleVariantImageDrop = (variantId: string | null, targetIndex: number) => {
+    if (!draggedVariantImage || draggedVariantImage.variantId !== variantId) {
+      setDraggedVariantImage(null);
+      return;
+    }
+
+    if (variantId) {
+      handleMoveVariantImage(variantId, draggedVariantImage.index, targetIndex);
+    } else {
+      handleMoveNewVariantImage(draggedVariantImage.index, targetIndex);
+    }
+    setDraggedVariantImage(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingVariantImages) {
+      alert('Please wait for variant images to finish uploading before saving the product.');
+      return;
+    }
     if (!title.trim() || !amazonUrl.trim()) return;
 
     const resolvedCategory = isCustomCategory ? customCategory.trim() || 'General' : category;
@@ -967,7 +1005,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     </span>
                   </h4>
                   <p className="text-[11px] text-slate-500">
-                    Add customer-selectable options (e.g., "5 lbs / Vanilla", "24 Cans 5.5 oz", "8-Qt Stainless"). Each variant can have its own price & direct Amazon affiliate link.
+                    Add customer-selectable options (e.g., "5 lbs / Vanilla", "24 Cans 5.5 oz", "8-Qt Stainless"). Each variant can have its own price, photos, and Amazon affiliate link.
                   </p>
                 </div>
               </div>
@@ -1030,7 +1068,8 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                   <button
                     type="button"
                     onClick={handleAddVariant}
-                    className="w-full py-1.5 px-3 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    disabled={isUploadingVariantImages}
+                    className="w-full py-1.5 px-3 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add</span>
@@ -1053,7 +1092,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
               <div className="space-y-2 border-t border-slate-200 pt-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <span className="text-[11px] font-semibold text-slate-700">
-                    Images for this variant: {newVarImages.length} / 20
+                    Images for this variant: {newVarImages.length} / 20 · Drag or use arrows to reorder
                   </span>
                   <label className={`inline-flex w-fit cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-semibold ${
                     isUploadingVariantImages
@@ -1075,7 +1114,21 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                 {newVarImages.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto py-1">
                     {newVarImages.map((image, index) => (
-                      <div key={`${image}-${index}`} className="relative h-14 w-14 shrink-0 rounded-lg border border-slate-200 bg-white p-1">
+                      <div
+                        key={`${image}-${index}`}
+                        draggable
+                        onDragStart={() => setDraggedVariantImage({ variantId: null, index })}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleVariantImageDrop(null, index);
+                        }}
+                        onDragEnd={() => setDraggedVariantImage(null)}
+                        className={`relative h-14 w-14 shrink-0 rounded-lg border border-slate-200 bg-white p-1 cursor-grab active:cursor-grabbing ${
+                          draggedVariantImage?.variantId === null && draggedVariantImage.index === index ? 'opacity-40' : ''
+                        }`}
+                        title="Drag to reorder"
+                      >
                         <img src={image} alt={`Variant photo ${index + 1}`} className="h-full w-full object-contain" />
                         <button
                           type="button"
@@ -1085,6 +1138,26 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                         >
                           <X className="h-3 w-3" />
                         </button>
+                        <div className="absolute inset-x-0 bottom-0 flex justify-between rounded-b-md bg-white/90">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveNewVariantImage(index, index - 1)}
+                            disabled={index === 0}
+                            aria-label={`Move variant photo ${index + 1} left`}
+                            className="p-0.5 text-slate-600 disabled:text-slate-300"
+                          >
+                            <ChevronLeft className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveNewVariantImage(index, index + 1)}
+                            disabled={index === newVarImages.length - 1}
+                            aria-label={`Move variant photo ${index + 1} right`}
+                            className="p-0.5 text-slate-600 disabled:text-slate-300"
+                          >
+                            <ChevronRight className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1150,7 +1223,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                           <div className="space-y-1.5 border-t border-slate-100 pt-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-[10px] font-semibold text-slate-500">
-                                Variant gallery: {variantImages.length} / 20
+                                Variant gallery: {variantImages.length} / 20 · Drag or use arrows to reorder
                               </span>
                               <label className={`cursor-pointer text-[10px] font-semibold ${
                                 isUploadingVariantImages || variantImages.length >= 20 ? 'text-slate-400' : 'text-amber-700 hover:text-amber-800'
@@ -1169,7 +1242,21 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                             {variantImages.length > 0 && (
                               <div className="flex gap-1.5 overflow-x-auto py-1">
                                 {variantImages.map((image, index) => (
-                                  <div key={`${image}-${index}`} className="relative h-12 w-12 shrink-0 rounded-md border border-slate-200 bg-white p-1">
+                                  <div
+                                    key={`${image}-${index}`}
+                                    draggable
+                                    onDragStart={() => setDraggedVariantImage({ variantId: v.id, index })}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      handleVariantImageDrop(v.id, index);
+                                    }}
+                                    onDragEnd={() => setDraggedVariantImage(null)}
+                                    className={`relative h-12 w-12 shrink-0 rounded-md border border-slate-200 bg-white p-1 cursor-grab active:cursor-grabbing ${
+                                      draggedVariantImage?.variantId === v.id && draggedVariantImage.index === index ? 'opacity-40' : ''
+                                    }`}
+                                    title="Drag to reorder"
+                                  >
                                     <img src={image} alt={`${v.name} photo ${index + 1}`} className="h-full w-full object-contain" />
                                     <button
                                       type="button"
@@ -1179,6 +1266,26 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                                     >
                                       <X className="h-2.5 w-2.5" />
                                     </button>
+                                    <div className="absolute inset-x-0 bottom-0 flex justify-between rounded-b-md bg-white/90">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveVariantImage(v.id, index, index - 1)}
+                                        disabled={index === 0}
+                                        aria-label={`Move photo ${index + 1} left in ${v.name}`}
+                                        className="p-0.5 text-slate-600 disabled:text-slate-300"
+                                      >
+                                        <ChevronLeft className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveVariantImage(v.id, index, index + 1)}
+                                        disabled={index === variantImages.length - 1}
+                                        aria-label={`Move photo ${index + 1} right in ${v.name}`}
+                                        className="p-0.5 text-slate-600 disabled:text-slate-300"
+                                      >
+                                        <ChevronRight className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -1328,9 +1435,10 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 text-xs font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-500 rounded-xl shadow-md cursor-pointer transition-transform hover:scale-102"
+              disabled={isUploadingVariantImages}
+              className="px-6 py-2.5 text-xs font-extrabold text-slate-950 bg-amber-400 hover:bg-amber-500 rounded-xl shadow-md cursor-pointer transition-transform hover:scale-102 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {productToEdit ? 'Save & Update Product' : 'Publish Product to Storefront'}
+              {isUploadingVariantImages ? 'Uploading variant photos...' : productToEdit ? 'Save & Update Product' : 'Publish Product to Storefront'}
             </button>
           </div>
         </form>
