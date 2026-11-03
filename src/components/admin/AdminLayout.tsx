@@ -21,6 +21,7 @@ import { AdminSocialAccounts } from './AdminSocialAccounts';
 import { AdminVercelGuide } from './AdminVercelGuide';
 import { AdminProductFormModal } from './AdminProductFormModal';
 import { AdminPixelTracking } from './AdminPixelTracking';
+import { getAdminUnreadCount } from '../../services/chat';
 
 interface AdminLayoutProps {
   onBackToStore: () => void;
@@ -37,15 +38,27 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
 
   const loadData = () => {
     setProducts(store.getProducts());
-    const convs = store.getConversations();
-    const count = convs.reduce((acc, c) => acc + c.unreadCount, 0);
-    setUnreadMessages(count);
+    const socialUnread = store.getConversations()
+      .filter((conversation) => conversation.channel !== 'website')
+      .reduce((total, conversation) => total + conversation.unreadCount, 0);
+    void getAdminUnreadCount()
+      .then(({ unreadCount }) => {
+        setUnreadMessages(socialUnread + unreadCount);
+      })
+      .catch((error: unknown) => {
+        console.error('Could not load unread chat count', error);
+        setUnreadMessages(socialUnread);
+      });
   };
 
   useEffect(() => {
     loadData();
     const unsub = store.subscribe(loadData);
-    return unsub;
+    const intervalId = window.setInterval(loadData, 5000);
+    return () => {
+      unsub();
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   const handleSaveProduct = (prodData: any) => {

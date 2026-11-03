@@ -1,19 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   MessageSquare,
   X,
   Send,
+  ImagePlus,
+  Mic,
+  Phone,
   ExternalLink,
   MessageCircle,
   Instagram,
   Facebook,
   Twitter,
   Video,
-  CheckCheck,
   Minimize2,
 } from 'lucide-react';
-import { Product, SocialChannel, ChatMessage } from '../types';
+import { Product, SocialChannel, ChatMessage, ChatAttachment } from '../types';
 import { store } from '../services/store';
+import { getChatVisitorId, getVisitorConversation, sendCustomerChatMessage } from '../services/chat';
+import { uploadChatAttachment } from '../services/storage';
 
 interface ChatWidgetProps {
   initialProduct?: Product | null;
@@ -31,24 +35,49 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [selectedChannel, setSelectedChannel] = useState<SocialChannel>('website');
   const [messageText, setMessageText] = useState('');
   const [visitorName, setVisitorName] = useState('Visitor');
-  const [visitorContact, setVisitorContact] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [visitorId, setVisitorId] = useState('');
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [chatError, setChatError] = useState('');
+  const imagePreviewUrls = useMemo(() => imageFiles.map((file) => URL.createObjectURL(file)), [imageFiles]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
-  // Load website chat history for this session
+  useEffect(() => () => imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url)), [imagePreviewUrls]);
+
   useEffect(() => {
-    const updateChat = () => {
-      const convs = store.getConversations();
-      // Look for web chat or current visitor's channel
-      const webConv = convs.find((c) => c.channel === 'website');
-      if (webConv) {
-        setChatHistory(webConv.messages);
+    let active = true;
+    let currentVisitorId = '';
+    const updateChat = async () => {
+      try {
+        if (!currentVisitorId) {
+          currentVisitorId = getChatVisitorId();
+          if (active) setVisitorId(currentVisitorId);
+        }
+        const conversation = await getVisitorConversation(currentVisitorId);
+        if (active) setChatHistory(conversation?.messages || []);
+      } catch (error) {
+        if (active) {
+          setChatError(error instanceof Error ? error.message : 'Could not load chat messages.');
+        }
       }
     };
 
-    updateChat();
-    const unsub = store.subscribe(updateChat);
-    return unsub;
+    void updateChat();
+    const intervalId = window.setInterval(updateChat, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.stop();
+      }
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
   }, []);
 
   useEffect(() => {
@@ -63,22 +92,137 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     }
   }, [chatHistory, isOpen]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageText.trim()) return;
+    if (!messageText.trim() && (selectedChannel !== 'website' || imageFiles.length === 0)) return;
+    setChatError('');
+    setIsSending(true);
+    try {
+      if (selectedChannel !== 'website') {
+        store.sendCustomerMessage(
+          selectedChannel,
+          visitorName.trim() || 'Guest Visitor',
+          `@shopper_${selectedChannel}`,
+          messageText.trim(),
+          initialProduct?.id,
+          initialProduct?.title
+        );
+      } else {
+        const id = visitorId || getChatVisitorId();
+        if (!visitorId) setVisitorId(id);
+        const attachments = await Promise.all(
+          imageFiles.map((file) => uploadChatAttachment(file, id, 'image'))
+        );
+        await sendCustomerChatMessage({
+          visitorId: id,
+          customerName: visitorName.trim() || 'Website Visitor',
+          text: messageText.trim(),
+          attachments,
+          productId: initialProduct?.id,
+          productTitle: initialProduct?.title,
+        });
+        const conversation = await getVisitorConversation(id);
+        setChatHistory(conversation?.messages || []);
+      }
 
-    const contact = visitorContact.trim() || 'Website Visitor';
-    store.sendCustomerMessage(
-      selectedChannel,
-      visitorName.trim() || 'Guest Visitor',
-      contact,
-      messageText.trim(),
-      initialProduct?.id,
-      initialProduct?.title
+      setMessageText('');
+      setImageFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (onClearInitialProduct) onClearInitialProduct();
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : 'Could not send your message.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleImageSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length + imageFiles.length > 4) {
+      setChatError('You can attach up to 4 images per message.');
+      event.target.value = '';
+      return;
+    }
+    const invalidFile = files.find((file) =>
+      !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type) ||
+      file.size > 5 * 1024 * 1024
     );
+    if (invalidFile) {
+      setChatError('Images must be JPG, PNG, WebP, or GIF and no larger than 5 MB each.');
+      event.target.value = '';
+      return;
+    }
+    setChatError('');
+    setImageFiles((current) => [...current, ...files]);
+    event.target.value = '';
+  };
 
-    setMessageText('');
-    if (onClearInitialProduct) onClearInitialProduct();
+  const handleRecording = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setChatError('Voice recording is not supported in this browser.');
+      return;
+    }
+
+    try {
+      setChatError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      const formats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      const mimeType = formats.find((format) => MediaRecorder.isTypeSupported(format));
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const chunks: BlobPart[] = [];
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) chunks.push(event.data);
+      };
+      recorder.onerror = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        setIsRecording(false);
+        setChatError('Voice recording failed. Please try again.');
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        setIsRecording(false);
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        if (!blob.size) return;
+        setIsSending(true);
+        try {
+          const id = visitorId || getChatVisitorId();
+          if (!visitorId) setVisitorId(id);
+          const extension = blob.type.includes('mp4') ? 'm4a' : 'webm';
+          const file = new File([blob], `voice-message-${Date.now()}.${extension}`, { type: blob.type });
+          const attachment: ChatAttachment = await uploadChatAttachment(file, id, 'audio');
+          await sendCustomerChatMessage({
+            visitorId: id,
+            customerName: visitorName.trim() || 'Website Visitor',
+            text: '',
+            attachments: [attachment],
+            productId: initialProduct?.id,
+            productTitle: initialProduct?.title,
+          });
+          const conversation = await getVisitorConversation(id);
+          setChatHistory(conversation?.messages || []);
+          if (onClearInitialProduct) onClearInitialProduct();
+        } catch (error) {
+          setChatError(error instanceof Error ? error.message : 'Could not send your voice message.');
+        } finally {
+          setIsSending(false);
+        }
+      };
+      recorder.start();
+      setIsRecording(true);
+      window.setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop();
+      }, 120_000);
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : 'Microphone access was not granted.');
+    }
   };
 
   // Direct Social URL Openers
@@ -103,6 +247,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const shopName = store.getStoreSettings().shopName || 'Kefayaan';
+  const phoneNumber = store.getSocialSettings().whatsappNumber.replace(/[^0-9+]/g, '');
 
   return (
     <div className="fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-40 flex flex-col items-end max-w-[calc(100vw-1.5rem)]">
@@ -118,13 +263,25 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 <p className="text-[10px] text-slate-400">Admin replies live or via Socials</p>
               </div>
             </div>
-            <button
-              onClick={onToggle}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-              aria-label="Close chat"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              {phoneNumber && (
+                <a
+                  href={`tel:${phoneNumber}`}
+                  title="Call Kefayaan"
+                  aria-label="Call Kefayaan"
+                  className="p-1.5 text-emerald-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                </a>
+              )}
+              <button
+                onClick={onToggle}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label="Close chat"
+              >
+                <Minimize2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Social Channels Selector Bar */}
@@ -221,7 +378,23 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                           : 'bg-amber-400 text-slate-950 font-medium rounded-tr-xs'
                       }`}
                     >
-                      {msg.text}
+                      {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
+                      {msg.attachments?.map((attachment) => (
+                        <div key={attachment.path} className={msg.text ? 'mt-2' : ''}>
+                          {attachment.type === 'image' && attachment.url ? (
+                            <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={attachment.url}
+                                alt="Chat attachment"
+                                loading="lazy"
+                                className="max-h-44 max-w-full rounded-lg object-contain"
+                              />
+                            </a>
+                          ) : attachment.type === 'audio' && attachment.url ? (
+                            <audio controls preload="metadata" src={attachment.url} className="max-w-full" />
+                          ) : null}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -232,25 +405,88 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
           {/* Input Form */}
           <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200 space-y-2">
+            {chatError && (
+              <p role="alert" className="rounded-lg bg-red-50 px-2.5 py-2 text-[11px] text-red-700">
+                {chatError}
+              </p>
+            )}
+            {imageFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {imageFiles.map((file, index) => (
+                  <div key={`${file.name}-${index}`} className="relative">
+                    <img
+                      src={imagePreviewUrls[index]}
+                      alt={`Selected image ${index + 1}`}
+                      className="h-14 w-14 rounded-lg border border-slate-200 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImageFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                      className="absolute -right-1.5 -top-1.5 rounded-full bg-slate-900 p-0.5 text-white"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Ask anything or request Amazon deal link..."
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
+                disabled={isSending}
                 className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
               />
               <button
                 type="submit"
-                disabled={!messageText.trim()}
+                disabled={isSending || (!messageText.trim() && (selectedChannel !== 'website' || imageFiles.length === 0))}
                 className="p-2 bg-slate-950 text-white rounded-xl hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 aria-label="Send message"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
+            {selectedChannel === 'website' && (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  onChange={handleImageSelection}
+                  className="hidden"
+                  aria-label="Choose images to attach"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSending || isRecording || imageFiles.length >= 4}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  <ImagePlus className="h-3.5 w-3.5" />
+                  Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleRecording()}
+                  disabled={isSending}
+                  className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold disabled:opacity-40 ${
+                    isRecording
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Mic className="h-3.5 w-3.5" />
+                  {isRecording ? 'Stop & send voice' : 'Voice message'}
+                </button>
+                {isSending && <span className="text-[10px] text-slate-500">Sending…</span>}
+              </div>
+            )}
             <div className="flex items-center justify-between text-[10px] text-slate-400">
-              <span>Admin replies sync to dashboard</span>
+              <span>Messages sync to the admin inbox</span>
               <span className="text-emerald-600 font-semibold">Active Support</span>
             </div>
           </form>

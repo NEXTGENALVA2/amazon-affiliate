@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Conversation, SocialChannel, ChatMessage } from '../../types';
 import { store } from '../../services/store';
+import { getAdminConversations, markChatConversationRead, sendAdminChatReply } from '../../services/chat';
 
 export const AdminSocialInbox: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -25,19 +26,33 @@ export const AdminSocialInbox: React.FC = () => {
   const [selectedConvId, setSelectedConvId] = useState<string>('');
   const [replyText, setReplyText] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
+  const [inboxError, setInboxError] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
-  const loadConversations = () => {
-    const list = store.getConversations();
-    setConversations(list);
-    if (!selectedConvId && list.length > 0) {
-      setSelectedConvId(list[0].id);
+  const loadConversations = async () => {
+    try {
+      const [websiteConversations, socialConversations] = await Promise.all([
+        getAdminConversations(),
+        Promise.resolve(store.getConversations().filter((conversation) => conversation.channel !== 'website')),
+      ]);
+      const list = [...websiteConversations, ...socialConversations]
+        .sort((left, right) => Date.parse(right.lastUpdated) - Date.parse(left.lastUpdated));
+      setConversations(list);
+      setInboxError('');
+      setSelectedConvId((current) => current || list[0]?.id || '');
+    } catch (error) {
+      setInboxError(error instanceof Error ? error.message : 'Could not load the inbox.');
     }
   };
 
   useEffect(() => {
-    loadConversations();
-    const unsub = store.subscribe(loadConversations);
-    return unsub;
+    void loadConversations();
+    const unsubscribe = store.subscribe(() => void loadConversations());
+    const intervalId = window.setInterval(() => void loadConversations(), 5000);
+    return () => {
+      unsubscribe();
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   const filteredConversations = conversations.filter((c) => {
@@ -53,15 +68,36 @@ export const AdminSocialInbox: React.FC = () => {
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConvId(conv.id);
-    store.markConversationRead(conv.id);
+    if (conv.channel === 'website') {
+      void markChatConversationRead(conv.id)
+        .then(() => loadConversations())
+        .catch((error: unknown) => {
+          setInboxError(error instanceof Error ? error.message : 'Could not mark messages as read.');
+        });
+    } else {
+      store.markConversationRead(conv.id);
+    }
   };
 
-  const handleSendReply = (e: React.FormEvent) => {
+  const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyText.trim() || !activeConversation) return;
 
-    store.sendAdminReply(activeConversation.id, replyText.trim());
-    setReplyText('');
+    setIsSendingReply(true);
+    setInboxError('');
+    try {
+      if (activeConversation.channel === 'website') {
+        await sendAdminChatReply(activeConversation.id, replyText.trim());
+        await loadConversations();
+      } else {
+        store.sendAdminReply(activeConversation.id, replyText.trim());
+      }
+      setReplyText('');
+    } catch (error) {
+      setInboxError(error instanceof Error ? error.message : 'Could not send your reply.');
+    } finally {
+      setIsSendingReply(false);
+    }
   };
 
   const handleApplyTemplate = (text: string) => {
@@ -104,6 +140,11 @@ export const AdminSocialInbox: React.FC = () => {
             View customer questions and reply directly from this site to WhatsApp, Instagram, Facebook, TikTok, Twitter/X, and Web
           </p>
         </div>
+        {inboxError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+            {inboxError}
+          </div>
+        )}
 
         {/* Channel Filter Pills */}
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto">
@@ -291,7 +332,23 @@ export const AdminSocialInbox: React.FC = () => {
                             : 'bg-white text-slate-900 border border-slate-200 rounded-tl-xs'
                         }`}
                       >
-                        {m.text}
+                        {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                        {m.attachments?.map((attachment) => (
+                          <div key={attachment.path} className={m.text ? 'mt-2' : ''}>
+                            {attachment.type === 'image' && attachment.url ? (
+                              <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={attachment.url}
+                                  alt="Customer chat attachment"
+                                  loading="lazy"
+                                  className="max-h-56 max-w-full rounded-lg object-contain"
+                                />
+                              </a>
+                            ) : attachment.type === 'audio' && attachment.url ? (
+                              <audio controls preload="metadata" src={attachment.url} className="max-w-full" />
+                            ) : null}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
@@ -342,6 +399,7 @@ export const AdminSocialInbox: React.FC = () => {
                   rows={3}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
+                  disabled={isSendingReply}
                   placeholder={`Type reply to ${activeConversation.customerName} directly on site...`}
                   className="w-full p-3 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-950 resize-none"
                 />
@@ -363,10 +421,10 @@ export const AdminSocialInbox: React.FC = () => {
                     )}
                     <button
                       type="submit"
-                      disabled={!replyText.trim()}
+                      disabled={isSendingReply || !replyText.trim()}
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-950 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
                     >
-                      <span>Send Direct Reply</span>
+                      <span>{isSendingReply ? 'Sending…' : 'Send Direct Reply'}</span>
                       <Send className="w-3.5 h-3.5" />
                     </button>
                   </div>

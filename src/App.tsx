@@ -108,6 +108,9 @@ export default function App() {
     refreshState();
     pixelService.initialize();
     const unsub = store.subscribe(refreshState);
+    void store.verifyAdminSession().catch((error: unknown) => {
+      console.error('Could not verify the admin session', error);
+    });
     return unsub;
   }, []);
 
@@ -354,8 +357,11 @@ export default function App() {
       <AdminLayout
         onBackToStore={() => setCurrentView('storefront')}
         onLogout={() => {
-          store.logoutAdmin();
-          setCurrentView('storefront');
+          void store.logoutAdmin()
+            .then(() => setCurrentView('storefront'))
+            .catch((error: unknown) => {
+              window.alert(error instanceof Error ? error.message : 'Could not log out. Please try again.');
+            });
         }}
       />
     );

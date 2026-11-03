@@ -11,12 +11,10 @@ import {
   Terminal,
 } from 'lucide-react';
 import { store } from '../../services/store';
+import { getAdminConversations } from '../../services/chat';
 
 export const AdminVercelGuide: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [newUsername, setNewUsername] = useState('admin');
-  const [newPassword, setNewPassword] = useState('');
-  const [saveMessage, setSaveMessage] = useState('');
 
   const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
@@ -24,21 +22,20 @@ export const AdminVercelGuide: React.FC = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handleUpdateCreds = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newUsername.trim() || !newPassword.trim()) {
-      setSaveMessage('Please enter both username and password.');
+  const handleExportDataBackup = async () => {
+    let remoteConversations;
+    try {
+      remoteConversations = await getAdminConversations();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Could not load chat backup.');
       return;
     }
-    store.updateAdminCredentials(newUsername.trim(), newPassword.trim());
-    setSaveMessage('Admin credentials updated successfully!');
-    setTimeout(() => setSaveMessage(''), 3000);
-  };
-
-  const handleExportDataBackup = () => {
     const backup = {
       products: store.getProducts(),
-      conversations: store.getConversations(),
+      conversations: [
+        ...store.getConversations().filter((conversation) => conversation.channel !== 'website'),
+        ...remoteConversations,
+      ],
       exportedAt: new Date().toISOString(),
       app: 'AuraGear Amazon Showcase',
     };
@@ -121,51 +118,22 @@ export const AdminVercelGuide: React.FC = () => {
         </div>
       </div>
 
-      {/* Admin Credentials & Security Settings */}
+      {/* Server-side chat and admin configuration */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
         <div className="flex items-center gap-2">
           <KeyRound className="w-5 h-5 text-amber-500" />
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Change Admin Login Credentials</h3>
-            <p className="text-xs text-slate-500">Update your secret Admin ID and password</p>
+            <h3 className="text-sm font-bold text-slate-900">Secure Chat &amp; Admin Setup</h3>
+            <p className="text-xs text-slate-500">Run the chat schema once in Supabase SQL Editor, then add these server-only variables in Vercel.</p>
           </div>
         </div>
 
-        <form onSubmit={handleUpdateCreds} className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">New Admin ID</label>
-            <input
-              type="text"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">New Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-slate-950 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
-            >
-              Update Credentials
-            </button>
-          </div>
-        </form>
-
-        {saveMessage && (
-          <p className="text-xs font-semibold text-emerald-600">{saveMessage}</p>
-        )}
+        <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-1.5">
+          <li>Run <code className="rounded bg-slate-100 px-1">supabase/chat-schema.sql</code> in your Supabase project.</li>
+          <li>Set <code className="rounded bg-slate-100 px-1">SUPABASE_URL</code> and the server-only <code className="rounded bg-slate-100 px-1">SUPABASE_SERVICE_ROLE_KEY</code>.</li>
+          <li>Set <code className="rounded bg-slate-100 px-1">CHAT_ADMIN_USERNAME</code>, <code className="rounded bg-slate-100 px-1">CHAT_ADMIN_PASSWORD</code>, and a random <code className="rounded bg-slate-100 px-1">CHAT_SESSION_SECRET</code> (32+ characters).</li>
+          <li>Redeploy after adding the variables. Do not put the service-role key in any <code className="rounded bg-slate-100 px-1">VITE_*</code> variable.</li>
+        </ol>
       </div>
 
       {/* Backup and Restore Data */}

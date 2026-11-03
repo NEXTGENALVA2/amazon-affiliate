@@ -20,16 +20,16 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const success = store.loginAdmin(username, password);
-    if (success) {
+    try {
+      await store.loginAdmin(username, password);
       onSuccess();
       onClose();
-    } else {
-      setError('Invalid Admin ID or Password. Please check your credentials and try again.');
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Could not sign in. Please try again.');
     }
   };
 

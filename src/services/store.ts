@@ -11,6 +11,7 @@ import {
   PixelEventLog,
 } from '../types';
 import { hasSupabase, supabase } from './supabase';
+import { loginChatAdmin, logoutChatAdmin, verifyChatAdminSession } from './chat';
 import monitorImg from '../assets/images/curved_gaming_monitor_1793432526940.jpg';
 import headphonesImg from '../assets/images/wireless_anc_headphones_1793432526819.jpg';
 import keyboardImg from '../assets/images/mechanical_keyboard_1793432527212.jpg';
@@ -32,8 +33,6 @@ const STORAGE_KEYS = {
   CLICKS: 'auragear_clicks_v1',
   VISITORS: 'auragear_visitors_v1',
   CONVERSATIONS: 'auragear_conversations_v1',
-  ADMIN_AUTH: 'auragear_admin_auth_v1',
-  ADMIN_CREDS: 'auragear_admin_creds_v1',
   SOCIAL_SETTINGS: 'auragear_social_settings_v1',
   STORE_SETTINGS: 'kefayaan_store_settings_v1',
   PIXEL_SETTINGS: 'kefayaan_pixel_settings_v1',
@@ -63,7 +62,7 @@ const DEFAULT_PIXEL_SETTINGS: PixelSettings = {
 };
 
 const DEFAULT_SOCIAL_SETTINGS: import('../types').SocialSettings = {
-  whatsappNumber: '+1 (800) 555-0199',
+  whatsappNumber: '+8801873785288',
   facebookPageUsername: 'kefayaanofficial',
   instagramUsername: 'kefayaan_official',
   tiktokUsername: 'kefayaan',
@@ -630,6 +629,7 @@ class StoreService {
   private conversations: Conversation[] = [];
   private listeners: (() => void)[] = [];
   private productsReady = false;
+  private adminUsername = '';
 
   constructor() {
     this.init();
@@ -1174,39 +1174,25 @@ class StoreService {
 
   // --- Admin Authentication ---
   public getAdminAuth() {
-    try {
-      const auth = localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH);
-      return auth ? JSON.parse(auth) : { isAuthenticated: false, username: '' };
-    } catch {
-      return { isAuthenticated: false, username: '' };
-    }
+    return { isAuthenticated: Boolean(this.adminUsername), username: this.adminUsername };
   }
 
-  public getAdminCredentials() {
-    try {
-      const creds = localStorage.getItem(STORAGE_KEYS.ADMIN_CREDS);
-      return creds ? JSON.parse(creds) : { username: 'admin', password: 'admin123' };
-    } catch {
-      return { username: 'admin', password: 'admin123' };
-    }
+  public async verifyAdminSession(): Promise<void> {
+    const session = await verifyChatAdminSession();
+    this.adminUsername = session?.username || '';
+    this.notify();
   }
 
-  public updateAdminCredentials(newUsername: string, newPassword: string) {
-    localStorage.setItem(STORAGE_KEYS.ADMIN_CREDS, JSON.stringify({ username: newUsername, password: newPassword }));
+  public async loginAdmin(username: string, pass: string): Promise<boolean> {
+    const session = await loginChatAdmin(username.trim(), pass);
+    this.adminUsername = session.username;
+    this.notify();
+    return true;
   }
 
-  public loginAdmin(username: string, pass: string): boolean {
-    const creds = this.getAdminCredentials();
-    if (username.trim() === creds.username && pass === creds.password) {
-      localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify({ isAuthenticated: true, username }));
-      this.notify();
-      return true;
-    }
-    return false;
-  }
-
-  public logoutAdmin() {
-    localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+  public async logoutAdmin(): Promise<void> {
+    await logoutChatAdmin();
+    this.adminUsername = '';
     this.notify();
   }
 
@@ -1214,7 +1200,11 @@ class StoreService {
   public getSocialSettings(): import('../types').SocialSettings {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SOCIAL_SETTINGS);
-      return saved ? { ...DEFAULT_SOCIAL_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SOCIAL_SETTINGS;
+      const settings = saved ? { ...DEFAULT_SOCIAL_SETTINGS, ...JSON.parse(saved) } : { ...DEFAULT_SOCIAL_SETTINGS };
+      if (settings.whatsappNumber === '+1 (800) 555-0199') {
+        settings.whatsappNumber = DEFAULT_SOCIAL_SETTINGS.whatsappNumber;
+      }
+      return settings;
     } catch {
       return DEFAULT_SOCIAL_SETTINGS;
     }
@@ -1235,7 +1225,7 @@ class StoreService {
     switch (channel) {
       case 'whatsapp': {
         const rawNumber = customHandle || s.whatsappNumber;
-        const cleanPhone = rawNumber.replace(/[^0-9]/g, '') || '18005550199';
+        const cleanPhone = rawNumber.replace(/[^0-9]/g, '') || '8801873785288';
         return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${text}`;
       }
       case 'instagram': {

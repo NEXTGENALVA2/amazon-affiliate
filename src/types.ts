@@ -84,10 +84,20 @@ export interface ChatMessage {
   customerName: string;
   customerHandle?: string;
   text: string;
+  attachments?: ChatAttachment[];
   timestamp: string;
   isRead: boolean;
   productId?: string;
   productTitle?: string;
+}
+
+export interface ChatAttachment {
+  path: string;
+  type: 'image' | 'audio';
+  name: string;
+  mimeType: string;
+  size: number;
+  url?: string;
 }
 
 export interface Conversation {
