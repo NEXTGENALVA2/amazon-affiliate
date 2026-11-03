@@ -82,6 +82,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
     'Certified Amazon Prime 2-day delivery eligible'
   ]);
   const [newFeatureText, setNewFeatureText] = useState('');
+  const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (productToEdit) {
@@ -166,6 +167,34 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
 
   const handleRemoveFeature = (index: number) => {
     setFeatures(features.filter((_, i) => i !== index));
+  };
+
+  const handleFeatureChange = (index: number, value: string) => {
+    setFeatures((prev) => prev.map((feature, i) => (i === index ? value : feature)));
+  };
+
+  const handleGalleryMove = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+
+    setGallery((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+
+    setCoverIndex((prevCover) => {
+      if (prevCover === fromIndex) return toIndex;
+      if (fromIndex < prevCover && toIndex >= prevCover) return prevCover - 1;
+      if (fromIndex > prevCover && toIndex <= prevCover) return prevCover + 1;
+      return prevCover;
+    });
+  };
+
+  const handleGalleryDrop = (targetIndex: number) => {
+    if (draggedGalleryIndex === null) return;
+    handleGalleryMove(draggedGalleryIndex, targetIndex);
+    setDraggedGalleryIndex(null);
   };
 
   // Multi-Image File Upload (Up to 20 Photos)
@@ -538,10 +567,14 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                   const isCover = coverIndex === index;
                   return (
                     <div
-                      key={index}
+                      key={`${imgUrl}-${index}`}
+                      draggable
+                      onDragStart={() => setDraggedGalleryIndex(index)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => handleGalleryDrop(index)}
                       className={`relative aspect-square rounded-xl overflow-hidden border-2 bg-white flex flex-col justify-between group transition-all ${
                         isCover ? 'border-amber-500 ring-2 ring-amber-400/40 shadow-sm' : 'border-slate-200 hover:border-slate-400'
-                      }`}
+                      } ${draggedGalleryIndex === index ? 'opacity-60 scale-[0.98]' : ''}`}
                     >
                       <img
                         src={imgUrl}
@@ -579,6 +612,20 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                         >
                           <Trash2 className="w-3 h-3" />
                           <span>Delete</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGalleryMove(index, index === 0 ? 1 : index - 1)}
+                          className="w-full py-1 px-1 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded shadow cursor-pointer"
+                        >
+                          Move Left
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleGalleryMove(index, Math.min(gallery.length - 1, index + 1))}
+                          className="w-full py-1 px-1 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded shadow cursor-pointer"
+                        >
+                          Move Right
                         </button>
                       </div>
                     </div>
@@ -1055,12 +1102,19 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
 
             <ul className="space-y-1.5">
               {features.map((feat, i) => (
-                <li key={i} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                  <span className="truncate">{feat}</span>
+                <li key={`feature-${i}`} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200 gap-2">
+                  <input
+                    type="text"
+                    value={feat}
+                    onChange={(e) => handleFeatureChange(i, e.target.value)}
+                    className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    placeholder="Feature description"
+                  />
                   <button
                     type="button"
                     onClick={() => handleRemoveFeature(i)}
                     className="text-red-500 hover:text-red-700 p-1"
+                    aria-label={`Remove bullet ${i + 1}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
