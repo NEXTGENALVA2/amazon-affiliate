@@ -629,6 +629,7 @@ class StoreService {
   private visitors: VisitorLog[] = [];
   private conversations: Conversation[] = [];
   private listeners: (() => void)[] = [];
+  private productsReady = false;
 
   constructor() {
     this.init();
@@ -716,7 +717,11 @@ class StoreService {
   }
 
   private async syncCloudProducts() {
-    if (!hasSupabase || !supabase) return;
+    if (!hasSupabase || !supabase) {
+      this.productsReady = true;
+      this.notify();
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -753,7 +758,14 @@ class StoreService {
       }
     } catch (error) {
       console.warn('Supabase connection check failed', error);
+    } finally {
+      this.productsReady = true;
+      this.notify();
     }
+  }
+
+  public areProductsReady(): boolean {
+    return this.productsReady;
   }
 
   public subscribe(listener: () => void) {

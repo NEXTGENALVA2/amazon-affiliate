@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, Star, Play, Check, Images } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency } from '../utils/helpers';
+import { getProductPath } from '../utils/productRoutes';
 
 interface ProductCardProps {
   product: Product;
@@ -206,7 +207,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Title */}
         <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-snug mb-2">
-          {product.title}
+          <a
+            href={getProductPath(product)}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                e.stopPropagation();
+                return;
+              }
+              e.preventDefault();
+              e.stopPropagation();
+              onSelect(product);
+            }}
+            className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
+          >
+            {product.title}
+          </a>
         </h3>
 
         {/* Prominent Product Description */}

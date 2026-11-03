@@ -33,6 +33,27 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { BuyerComparisonTable } from './components/BuyerComparisonTable';
 import { formatCurrency } from './utils/helpers';
 import { pixelService } from './services/pixelService';
+import { findProductByRouteSlug, getProductPath, getProductRouteSlug } from './utils/productRoutes';
+
+const setMetaContent = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
+  let element = document.head.querySelector<HTMLMetaElement>(selector);
+  if (!element) {
+    element = document.createElement('meta');
+    element.setAttribute(attribute, key);
+    document.head.appendChild(element);
+  }
+  element.content = content;
+};
+
+const setCanonicalUrl = (url: string) => {
+  let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement('link');
+    canonical.rel = 'canonical';
+    document.head.appendChild(canonical);
+  }
+  canonical.href = url;
+};
 
 const getSearchQueryFromLocation = (): string | null => {
   if (window.location.pathname.replace(/\/+$/, '') !== '/search') return null;
@@ -53,6 +74,7 @@ export default function App() {
 
   // Store data
   const [products, setProducts] = useState<Product[]>([]);
+  const [isProductsReady, setIsProductsReady] = useState(store.areProductsReady());
   const initialSearchQuery = getSearchQueryFromLocation();
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery ?? '');
   const [activeSearchQuery, setActiveSearchQuery] = useState<string | null>(initialSearchQuery);
@@ -77,6 +99,7 @@ export default function App() {
   // Refresh products & auth on change
   const refreshState = () => {
     setProducts(store.getProducts());
+    setIsProductsReady(store.areProductsReady());
     const auth = store.getAdminAuth();
     setIsAdminLoggedIn(auth.isAuthenticated);
   };
@@ -93,17 +116,107 @@ export default function App() {
       const query = getSearchQueryFromLocation();
       setActiveSearchQuery(query);
       setSearchQuery(query ?? '');
+      setSelectedProduct(null);
       window.scrollTo({ top: 0 });
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  const productRouteSlug = getProductRouteSlug(window.location.pathname);
+  const routeProduct = productRouteSlug ? findProductByRouteSlug(products, productRouteSlug) : undefined;
+  const isProductPage = productRouteSlug !== null;
+
   useEffect(() => {
-    document.title = activeSearchQuery === null
-      ? 'Kefayaan - Amazon Official Store & Curated US Best Sellers'
-      : `Search results for ${activeSearchQuery || 'products'} | Kefayaan`;
-  }, [activeSearchQuery]);
+    const origin = window.location.origin;
+    const pageUrl = new URL(window.location.pathname, origin).href;
+    let title = 'Kefayaan | Curated Amazon US Product Deals & Reviews';
+    let description = 'Discover curated Amazon US products, verified deals, detailed product information, and affiliate links from Kefayaan.';
+    let image = '/assets/aistudio/DP_af5fa802.png';
+    let robots = 'index,follow';
+    let structuredData: Record<string, unknown> | null = {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Kefayaan',
+      url: `${origin}/`,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${origin}/search?q={search_term_string}`,
+        'query-input': 'required name=search_term_string',
+      },
+    };
+
+    if (isProductPage) {
+      robots = routeProduct ? 'index,follow' : 'noindex,follow';
+      title = routeProduct ? `${routeProduct.title} | Kefayaan` : 'Product | Kefayaan';
+      description = routeProduct?.description?.trim().slice(0, 300) ||
+        (routeProduct ? `Explore ${routeProduct.title}, including product details, pricing, images, and buying options on Kefayaan.` : 'Loading product details on Kefayaan.');
+      image = routeProduct?.image || '';
+      structuredData = routeProduct ? {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: routeProduct.title,
+        description,
+        image: [routeProduct.image, ...(routeProduct.gallery || [])]
+          .filter(Boolean)
+          .map((url) => new URL(url, origin).href),
+        sku: routeProduct.id,
+        brand: { '@type': 'Brand', name: routeProduct.brand },
+        category: routeProduct.category,
+        ...(routeProduct.rating > 0 && routeProduct.reviewCount > 0
+          ? {
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: routeProduct.rating,
+                reviewCount: routeProduct.reviewCount,
+              },
+            }
+          : {}),
+        offers: {
+          '@type': 'Offer',
+          url: pageUrl,
+          priceCurrency: 'USD',
+          price: routeProduct.dealPrice,
+          availability: routeProduct.inStock
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/OutOfStock',
+        },
+      } : null;
+    } else if (activeSearchQuery !== null) {
+      title = `Search results for ${activeSearchQuery || 'products'} | Kefayaan`;
+      description = activeSearchQuery
+        ? `Products matching "${activeSearchQuery}" in the Kefayaan Amazon US storefront.`
+        : 'Search curated Amazon US products in the Kefayaan storefront.';
+      robots = 'noindex,follow';
+      structuredData = null;
+    }
+
+    document.title = title;
+    setMetaContent('meta[name="description"]', 'name', 'description', description);
+    setMetaContent('meta[name="robots"]', 'name', 'robots', robots);
+    setMetaContent('meta[property="og:title"]', 'property', 'og:title', title);
+    setMetaContent('meta[property="og:description"]', 'property', 'og:description', description);
+    setMetaContent('meta[property="og:type"]', 'property', 'og:type', routeProduct ? 'product' : 'website');
+    setMetaContent('meta[property="og:url"]', 'property', 'og:url', pageUrl);
+    setMetaContent('meta[property="og:image"]', 'property', 'og:image', image ? new URL(image, origin).href : '');
+    setMetaContent('meta[name="twitter:title"]', 'name', 'twitter:title', title);
+    setMetaContent('meta[name="twitter:description"]', 'name', 'twitter:description', description);
+    setMetaContent('meta[name="twitter:image"]', 'name', 'twitter:image', image ? new URL(image, origin).href : '');
+    setCanonicalUrl(pageUrl);
+
+    let script = document.getElementById('page-structured-data');
+    if (structuredData) {
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'page-structured-data';
+        script.setAttribute('type', 'application/ld+json');
+        document.head.appendChild(script);
+      }
+      script.textContent = JSON.stringify(structuredData);
+    } else {
+      script?.remove();
+    }
+  }, [activeSearchQuery, isProductPage, routeProduct]);
 
   const handleSearchSubmit = (value: string) => {
     const query = value.trim();
@@ -113,6 +226,7 @@ export default function App() {
     }
 
     window.history.pushState({}, '', `/search?q=${encodeURIComponent(query)}`);
+    setSelectedProduct(null);
     setSearchQuery(query);
     setActiveSearchQuery(query);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -123,6 +237,16 @@ export default function App() {
       window.history.pushState({}, '', '/');
       setActiveSearchQuery(null);
     }
+    setSearchQuery('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleGoHome = () => {
+    if (window.location.pathname !== '/' || window.location.search) {
+      window.history.pushState({}, '', '/');
+    }
+    setSelectedProduct(null);
+    setActiveSearchQuery(null);
     setSearchQuery('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -182,8 +306,23 @@ export default function App() {
   };
 
   const handleSelectProduct = (product: Product) => {
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (window.location.pathname !== getProductPath(product)) {
+      window.history.pushState({ previousPath: currentPath }, '', getProductPath(product));
+    }
+    setActiveSearchQuery(null);
+    setSearchQuery('');
     setSelectedProduct(product);
     pixelService.trackViewContent(product);
+  };
+
+  const handleCloseProductPage = () => {
+    const previousPath = window.history.state?.previousPath;
+    if (typeof previousPath === 'string' && previousPath.startsWith('/')) {
+      window.history.back();
+      return;
+    }
+    handleGoHome();
   };
 
   const handleOpenChatWithProduct = (product: Product) => {
@@ -193,6 +332,11 @@ export default function App() {
 
   const handleScrollTo = (id: string) => {
     const scrollToSection = () => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    if (isProductPage) {
+      handleGoHome();
+      window.setTimeout(scrollToSection, 0);
+      return;
+    }
     if (activeSearchQuery !== null) {
       window.history.pushState({}, '', '/');
       setActiveSearchQuery(null);
@@ -221,6 +365,76 @@ export default function App() {
   const gymProteinProduct = products.find((p) => p.id === 'prod-gym-protein');
   const kitchenProduct = products.find((p) => p.id === 'prod-kitchen-airfryer');
 
+  if (isProductPage) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+        {toastMessage && (
+          <div className="fixed top-20 right-6 z-50 bg-slate-950 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 text-xs flex items-center gap-2">
+            <ExternalLink className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+        <Navbar
+          isAdminLoggedIn={isAdminLoggedIn}
+          onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+          onGoToAdmin={() => setCurrentView('admin')}
+          onOpenSocialHub={() => setIsChatOpen(true)}
+          onGoHome={handleGoHome}
+          onScrollToSection={handleScrollTo}
+        />
+        <ProductSearchBar
+          query={searchQuery}
+          results={liveSearchResults}
+          onQueryChange={setSearchQuery}
+          onClear={handleClearSearch}
+          onSubmit={handleSearchSubmit}
+          onSelectProduct={handleSelectProduct}
+          isSearchPage={activeSearchQuery !== null}
+        />
+        {routeProduct ? (
+          <ProductDetailModal
+            product={routeProduct}
+            isPage
+            onClose={handleCloseProductPage}
+            onBuyNow={(prod, customUrl) => handleBuyNow(prod, undefined, customUrl)}
+            onOpenChatWithProduct={handleOpenChatWithProduct}
+          />
+        ) : (
+          <main className="flex-1 flex items-center justify-center px-6 py-20 text-center">
+            {!isProductsReady ? (
+              <p role="status" className="text-sm font-medium text-slate-500">Loading product details...</p>
+            ) : (
+              <div className="max-w-md">
+                <h1 className="text-2xl font-bold text-slate-900">Product not found</h1>
+                <p className="mt-2 text-sm text-slate-600">This product may have been removed or its link may be incorrect.</p>
+                <button type="button" onClick={handleGoHome} className="mt-5 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-500">
+                  Browse all products
+                </button>
+              </div>
+            )}
+          </main>
+        )}
+        <footer className="border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-500">
+          Kefayaan participates in the Amazon Associates program and may earn from qualifying purchases.
+        </footer>
+        <ChatWidget
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen(!isChatOpen)}
+          initialProduct={chatInitialProduct}
+          onClearInitialProduct={() => setChatInitialProduct(null)}
+        />
+        <AdminLoginModal
+          isOpen={isAdminLoginModalOpen}
+          onClose={() => setIsAdminLoginModalOpen(false)}
+          onSuccess={() => {
+            setIsAdminLoggedIn(true);
+            setCurrentView('admin');
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Toast Notification */}
@@ -237,7 +451,7 @@ export default function App() {
         onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
         onGoToAdmin={() => setCurrentView('admin')}
         onOpenSocialHub={() => setIsChatOpen(true)}
-        onGoHome={handleClearSearch}
+        onGoHome={handleGoHome}
         onScrollToSection={handleScrollTo}
       />
 
@@ -867,7 +1081,7 @@ export default function App() {
       {/* Product Detail & Video Modal */}
       <ProductDetailModal
         product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
+        onClose={handleCloseProductPage}
         onBuyNow={(prod, customUrl) => handleBuyNow(prod, undefined, customUrl)}
         onOpenChatWithProduct={handleOpenChatWithProduct}
       />

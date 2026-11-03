@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, ExternalLink, Star, Play, CheckCircle2, MessageCircle, ShieldCheck, Truck, ChevronLeft, ChevronRight, Images } from 'lucide-react';
+import { X, ExternalLink, Star, Play, CheckCircle2, MessageCircle, ShieldCheck, Truck, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
 
@@ -8,6 +8,7 @@ interface ProductDetailModalProps {
   onClose: () => void;
   onBuyNow: (product: Product, customUrl?: string) => void;
   onOpenChatWithProduct: (product: Product) => void;
+  isPage?: boolean;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -15,6 +16,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onClose,
   onBuyNow,
   onOpenChatWithProduct,
+  isPage = false,
 }) => {
   const hasVariants = Boolean(product?.variants?.length);
   const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
@@ -35,6 +37,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const [activeMedia, setActiveMedia] = useState<'image' | 'video'>('image');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [shareCopied, setShareCopied] = useState(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -64,6 +67,26 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   const selectedImage = allImages[activeImageIndex] || product.image;
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.title, text: product.description, url });
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this product link to share it:', url);
+    }
+  };
+
   const handleGalleryTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     const start = touchStart.current;
     touchStart.current = null;
@@ -79,10 +102,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm overflow-y-auto p-0 sm:p-4 md:p-6">
-      <div className="relative w-full max-w-4xl bg-white rounded-none sm:rounded-2xl md:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] flex flex-col">
+    <div className={isPage ? 'w-full flex-1 bg-slate-50 px-3 py-5 sm:px-6 sm:py-8' : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm overflow-y-auto p-0 sm:p-4 md:p-6'}>
+      <div className={isPage ? 'relative w-full max-w-6xl mx-auto bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col' : 'relative w-full max-w-4xl bg-white rounded-none sm:rounded-2xl md:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] flex flex-col'}>
         {/* Modal Top Bar */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/70 gap-2 shrink-0">
+          {isPage && (
+            <button type="button" onClick={onClose} aria-label="Back to products" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-950">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back to products</span>
+            </button>
+          )}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs min-w-0">
             <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-900 font-bold uppercase tracking-wider text-[10px] truncate max-w-[140px] sm:max-w-none">
               {product.category}
@@ -98,17 +127,24 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {isPage ? (
+            <button type="button" onClick={handleShare} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 shrink-0" aria-label="Share product link">
+              {shareCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+              <span>{shareCopied ? 'Link copied' : 'Share'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Modal Body */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6 overflow-y-auto">
+        <div className={isPage ? 'grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6' : 'grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6 overflow-y-auto'}>
           {/* Left Column: Media Player (Images & Video Gallery) */}
           <div className="md:col-span-7 space-y-3">
             {/* Main Stage */}

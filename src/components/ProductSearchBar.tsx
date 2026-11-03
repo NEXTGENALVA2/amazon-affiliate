@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowRight, Search, X } from 'lucide-react';
 import { Product } from '../types';
+import { getProductPath } from '../utils/productRoutes';
 
 interface ProductSearchBarProps {
   query: string;
@@ -71,12 +72,14 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
               {suggestions.length > 0 ? (
                 <>
                   {suggestions.map((product) => (
-                    <button
+                    <a
                       key={product.id}
-                      type="button"
+                      href={getProductPath(product)}
                       role="option"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                        e.preventDefault();
+                        e.stopPropagation();
                         setIsFocused(false);
                         onSelectProduct(product);
                       }}
@@ -94,7 +97,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                         </span>
                       </span>
                       <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
-                    </button>
+                    </a>
                   ))}
                   {results.length > suggestions.length && (
                     <p className="px-4 py-2 text-center text-[11px] text-slate-500">
@@ -120,6 +123,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
 
         <button
           type="submit"
+          aria-label="Search products"
           className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-xs font-extrabold text-slate-950 transition hover:bg-amber-500 sm:h-14 sm:px-6 sm:text-sm"
         >
           <Search className="h-4 w-4" />
