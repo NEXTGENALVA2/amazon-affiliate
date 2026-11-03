@@ -126,6 +126,70 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  const socialSettings = store.getSocialSettings();
+  const socialHubLinks = [
+    ...(socialSettings.visibleChannels.includes('whatsapp')
+      ? [{
+          id: 'whatsapp',
+          label: 'WhatsApp',
+          description: 'Direct Chat',
+          url: store.getSocialUrl('whatsapp'),
+          icon: <MessageCircle className="w-5 h-5" />,
+          iconClass: 'bg-emerald-500/20 text-emerald-400',
+        }]
+      : []),
+    ...(socialSettings.visibleChannels.includes('instagram')
+      ? [{
+          id: 'instagram',
+          label: 'Instagram',
+          description: 'Direct DM',
+          url: store.getSocialUrl('instagram'),
+          icon: <Instagram className="w-5 h-5" />,
+          iconClass: 'bg-pink-500/20 text-pink-400',
+        }]
+      : []),
+    ...(socialSettings.visibleChannels.includes('facebook')
+      ? [{
+          id: 'facebook',
+          label: 'Messenger',
+          description: 'Facebook Page',
+          url: store.getSocialUrl('facebook'),
+          icon: <Facebook className="w-5 h-5" />,
+          iconClass: 'bg-blue-500/20 text-blue-400',
+        }]
+      : []),
+    ...(socialSettings.visibleChannels.includes('tiktok')
+      ? [{
+          id: 'tiktok',
+          label: 'TikTok',
+          description: 'Videos & Chat',
+          url: store.getSocialUrl('tiktok'),
+          icon: <Video className="w-5 h-5" />,
+          iconClass: 'bg-slate-700 text-white',
+        }]
+      : []),
+    ...(socialSettings.visibleChannels.includes('twitter')
+      ? [{
+          id: 'twitter',
+          label: 'Twitter / X',
+          description: 'Instant DMs',
+          url: store.getSocialUrl('twitter'),
+          icon: <Twitter className="w-5 h-5" />,
+          iconClass: 'bg-sky-500/20 text-sky-400',
+        }]
+      : []),
+    ...socialSettings.customLinks
+      .filter((link) => link.enabled)
+      .map((link) => ({
+        id: link.id,
+        label: link.label,
+        description: 'Visit our profile',
+        url: link.url,
+        icon: <ExternalLink className="w-5 h-5" />,
+        iconClass: 'bg-white/10 text-slate-200',
+      })),
+  ];
+
   const productRouteSlug = getProductRouteSlug(window.location.pathname);
   const routeProduct = productRouteSlug ? findProductByRouteSlug(products, productRouteSlug) : undefined;
   const isProductPage = productRouteSlug !== null;
@@ -919,7 +983,7 @@ export default function App() {
               Have Questions About a Product or Deal? Ask Us Anywhere.
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
-              Knock on our <strong>WhatsApp</strong>, <strong>Facebook Page</strong>, <strong>Instagram</strong>, or message directly on the website live chat. All inquiries synchronize directly to our admin team in real time!
+              Message us through your preferred platform or contact us directly through the website live chat.
             </p>
           </div>
 
@@ -934,71 +998,21 @@ export default function App() {
               <span className="text-xs font-bold">Website Chat</span>
               <span className="text-[10px] text-slate-400">Live on page</span>
             </button>
-
-            <a
-              href={store.getSocialUrl('whatsapp')}
-              target="_blank"
-              rel="noreferrer"
-              className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all"
-            >
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                <MessageCircle className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold">WhatsApp</span>
-              <span className="text-[10px] text-slate-400">Direct Chat</span>
-            </a>
-
-            <a
-              href={store.getSocialUrl('instagram')}
-              target="_blank"
-              rel="noreferrer"
-              className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all"
-            >
-              <div className="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center">
-                <Instagram className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold">Instagram</span>
-              <span className="text-[10px] text-slate-400">Direct DM</span>
-            </a>
-
-            <a
-              href={store.getSocialUrl('facebook')}
-              target="_blank"
-              rel="noreferrer"
-              className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all"
-            >
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
-                <Facebook className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold">Messenger</span>
-              <span className="text-[10px] text-slate-400">Facebook Page</span>
-            </a>
-
-            <a
-              href={store.getSocialUrl('tiktok')}
-              target="_blank"
-              rel="noreferrer"
-              className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all"
-            >
-              <div className="w-10 h-10 rounded-xl bg-slate-700 text-white flex items-center justify-center">
-                <Video className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold">TikTok</span>
-              <span className="text-[10px] text-slate-400">Videos & Chat</span>
-            </a>
-
-            <a
-              href={store.getSocialUrl('twitter')}
-              target="_blank"
-              rel="noreferrer"
-              className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all"
-            >
-              <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center">
-                <Twitter className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold">Twitter / X</span>
-              <span className="text-[10px] text-slate-400">Instant DMs</span>
-            </a>
+            {socialHubLinks.map((link) => (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all"
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${link.iconClass}`}>
+                  {link.icon}
+                </div>
+                <span className="text-xs font-bold">{link.label}</span>
+                <span className="text-[10px] text-slate-400">{link.description}</span>
+              </a>
+            ))}
           </div>
         </section>
       </main>

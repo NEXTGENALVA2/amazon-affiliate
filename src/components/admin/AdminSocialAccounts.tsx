@@ -20,9 +20,11 @@ import {
   Bell,
   Code,
   Zap,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { store } from '../../services/store';
-import { SocialSettings, SocialChannel, StoreSettings } from '../../types';
+import { SocialSettings, SocialChannel, SocialLink, StoreSettings } from '../../types';
 
 interface AdminSocialAccountsProps {
   onNavigateToInbox?: () => void;
@@ -34,6 +36,11 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [storeSavedSuccess, setStoreSavedSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+  const [isSavingSocialSettings, setIsSavingSocialSettings] = useState(false);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
 
   // Incoming Webhook Knock Simulator States
   const [testChannel, setTestChannel] = useState<SocialChannel>('whatsapp');
@@ -87,11 +94,95 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    store.updateSocialSettings(settings);
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+    setSettingsError('');
+    setIsSavingSocialSettings(true);
+    try {
+      const saved = await store.updateSocialSettings(settings);
+      setSettings(saved);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : 'Could not save social settings.');
+    } finally {
+      setIsSavingSocialSettings(false);
+    }
+  };
+
+  const toggleSocialChannel = (channel: SocialChannel) => {
+    if (channel === 'website') return;
+    const persistedSettings = store.getSocialSettings();
+    const visibleChannels = persistedSettings.visibleChannels.includes(channel)
+      ? persistedSettings.visibleChannels.filter((item) => item !== channel)
+      : [...persistedSettings.visibleChannels, channel];
+    void saveVisibilitySettings({ ...persistedSettings, visibleChannels });
+    setSettings((current) => ({
+      ...current,
+      visibleChannels: current.visibleChannels.includes(channel)
+        ? current.visibleChannels.filter((item) => item !== channel)
+        : [...current.visibleChannels, channel],
+    }));
+  };
+
+  const toggleChatHeader = (visible: boolean) => {
+    const persistedSettings = store.getSocialSettings();
+    setSettings((current) => ({ ...current, chatHeaderVisible: visible }));
+    void saveVisibilitySettings({ ...persistedSettings, chatHeaderVisible: visible });
+  };
+
+  const saveVisibilitySettings = async (updated: SocialSettings) => {
+    setIsSavingVisibility(true);
+    setSettingsError('');
+    try {
+      await store.updateSocialSettings(updated);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : 'Could not update site visibility.');
+      const current = store.getSocialSettings();
+      setSettings((draft) => ({
+        ...draft,
+        chatHeaderVisible: current.chatHeaderVisible,
+        visibleChannels: current.visibleChannels,
+      }));
+    } finally {
+      setIsSavingVisibility(false);
+    }
+  };
+
+  const addSocialLink = () => {
+    const label = newLinkLabel.trim();
+    const url = newLinkUrl.trim();
+    if (!label || !url) {
+      setSettingsError('Enter a social platform name and its full link.');
+      return;
+    }
+    if (settings.customLinks.length >= 8) {
+      setSettingsError('You can add up to 8 custom social links.');
+      return;
+    }
+    setSettingsError('');
+    const link: SocialLink = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      label,
+      url,
+      enabled: true,
+    };
+    handleChange('customLinks', [...settings.customLinks, link]);
+    setNewLinkLabel('');
+    setNewLinkUrl('');
+  };
+
+  const updateSocialLink = (id: string, field: 'label' | 'url', value: string) => {
+    handleChange(
+      'customLinks',
+      settings.customLinks.map((link) => link.id === id ? { ...link, [field]: value } : link)
+    );
+  };
+
+  const removeSocialLink = (id: string) => {
+    handleChange('customLinks', settings.customLinks.filter((link) => link.id !== id));
   };
 
   const copyToClipboard = (text: string, fieldName: string) => {
@@ -100,7 +191,7 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const testLink = (channel: 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' | 'twitter') => {
+  const testLink = (channel: Exclude<SocialChannel, 'website'>) => {
     const url = store.getSocialUrl(
       channel,
       'Hello! This is a test message from Kefayaan settings preview.'
@@ -408,6 +499,52 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
       <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Account Inputs */}
         <div className="lg:col-span-8 space-y-6">
+          {settingsError && (
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+              {settingsError}
+            </div>
+          )}
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Website Chat &amp; Social Visibility</h3>
+              <p className="text-[11px] text-slate-500">Choose whether the chat title and each social button appear on your site.</p>
+            </div>
+            <label className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 p-3">
+              <span>
+                <span className="block text-xs font-semibold text-slate-800">Show chat header</span>
+                <span className="block text-[11px] text-slate-500">Hide or show the “Kefayaan Live Help” bar in the chat window.</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={settings.chatHeaderVisible}
+                onChange={(event) => toggleChatHeader(event.target.checked)}
+                disabled={isSavingVisibility}
+                className="h-4 w-4 accent-amber-500"
+              />
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {([
+                ['whatsapp', 'WhatsApp'],
+                ['facebook', 'Facebook Messenger'],
+                ['instagram', 'Instagram'],
+                ['tiktok', 'TikTok'],
+                ['twitter', 'Twitter / X'],
+              ] as const).map(([channel, label]) => (
+                <label key={channel} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={settings.visibleChannels.includes(channel)}
+                    onChange={() => toggleSocialChannel(channel)}
+                    disabled={isSavingVisibility}
+                    className="h-4 w-4 accent-amber-500"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Card: Webhook API Details (Meta & Zapier Bridge) */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2 text-purple-700">
@@ -485,6 +622,85 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
 }`}
               </pre>
             </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Add Social Platform Links</h3>
+              <p className="text-[11px] text-slate-500">Add a Facebook Page, YouTube channel, or any other public profile URL. Saved links appear in the chat and social section.</p>
+            </div>
+            {settings.customLinks.map((link) => (
+              <div key={link.id} className="grid grid-cols-1 sm:grid-cols-[auto_1fr_2fr_auto] gap-2">
+                <label className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-2 text-[10px] text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={link.enabled}
+                    onChange={(event) => handleChange(
+                      'customLinks',
+                      settings.customLinks.map((item) => item.id === link.id
+                        ? { ...item, enabled: event.target.checked }
+                        : item)
+                    )}
+                    aria-label={`Show ${link.label} link`}
+                    className="h-4 w-4 accent-amber-500"
+                  />
+                  Show
+                </label>
+                <input
+                  type="text"
+                  maxLength={32}
+                  value={link.label}
+                  onChange={(event) => updateSocialLink(link.id, 'label', event.target.value)}
+                  aria-label={`${link.label || 'Social platform'} display name`}
+                  placeholder="Platform name, e.g. YouTube"
+                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs"
+                />
+                <input
+                  type="url"
+                  value={link.url}
+                  onChange={(event) => updateSocialLink(link.id, 'url', event.target.value)}
+                  aria-label={`${link.label || 'Social platform'} URL`}
+                  placeholder="https://youtube.com/@yourchannel"
+                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSocialLink(link.id)}
+                  className="inline-flex items-center justify-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs text-red-700 hover:bg-red-50"
+                  aria-label={`Remove ${link.label || 'social link'}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+              </div>
+            ))}
+            {settings.customLinks.length < 8 && (
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-2 border-t border-slate-100 pt-4">
+                <input
+                  type="text"
+                  maxLength={32}
+                  value={newLinkLabel}
+                  onChange={(event) => setNewLinkLabel(event.target.value)}
+                  placeholder="Platform name, e.g. YouTube"
+                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs"
+                />
+                <input
+                  type="url"
+                  value={newLinkUrl}
+                  onChange={(event) => setNewLinkUrl(event.target.value)}
+                  placeholder="https://youtube.com/@yourchannel"
+                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={addSocialLink}
+                  className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add link
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Card: WhatsApp Configuration */}
@@ -695,10 +911,11 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+              disabled={isSavingSocialSettings}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              <span>Save & Update All Social Links</span>
+              <span>{isSavingSocialSettings ? 'Saving…' : 'Save & Update All Social Links'}</span>
             </button>
           </div>
         </div>

@@ -129,7 +129,7 @@ export const AdminVercelGuide: React.FC = () => {
         </div>
 
         <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-1.5">
-          <li>Run <code className="rounded bg-slate-100 px-1">supabase/chat-schema.sql</code> in your Supabase project.</li>
+          <li>Run the latest <code className="rounded bg-slate-100 px-1">supabase/chat-schema.sql</code> in your Supabase project (run it again after updates to create new settings tables).</li>
           <li>Set <code className="rounded bg-slate-100 px-1">SUPABASE_URL</code> and the server-only <code className="rounded bg-slate-100 px-1">SUPABASE_SERVICE_ROLE_KEY</code>.</li>
           <li>Set <code className="rounded bg-slate-100 px-1">CHAT_ADMIN_USERNAME</code>, <code className="rounded bg-slate-100 px-1">CHAT_ADMIN_PASSWORD</code>, and a random <code className="rounded bg-slate-100 px-1">CHAT_SESSION_SECRET</code> (32+ characters).</li>
           <li>Redeploy after adding the variables. Do not put the service-role key in any <code className="rounded bg-slate-100 px-1">VITE_*</code> variable.</li>

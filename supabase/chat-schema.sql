@@ -27,6 +27,12 @@ create table if not exists public.chat_messages (
   product_title text
 );
 
+create table if not exists public.storefront_settings (
+  id text primary key,
+  payload jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists chat_conversations_last_updated_idx
   on public.chat_conversations (last_updated desc);
 create index if not exists chat_messages_conversation_timestamp_idx
@@ -34,10 +40,13 @@ create index if not exists chat_messages_conversation_timestamp_idx
 
 alter table public.chat_conversations enable row level security;
 alter table public.chat_messages enable row level security;
+alter table public.storefront_settings enable row level security;
 revoke all on public.chat_conversations from anon, authenticated;
 revoke all on public.chat_messages from anon, authenticated;
+revoke all on public.storefront_settings from anon, authenticated;
 grant all on public.chat_conversations to service_role;
 grant all on public.chat_messages to service_role;
+grant all on public.storefront_settings to service_role;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

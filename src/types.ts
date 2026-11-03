@@ -126,7 +126,17 @@ export interface SocialSettings {
   twitterUsername: string;
   autoReplyEnabled: boolean;
   autoReplyMessage: string;
+  chatHeaderVisible: boolean;
+  visibleChannels: SocialChannel[];
+  customLinks: SocialLink[];
   webhookUrl?: string;
+}
+
+export interface SocialLink {
+  id: string;
+  label: string;
+  url: string;
+  enabled: boolean;
 }
 
 export interface PixelSettings {

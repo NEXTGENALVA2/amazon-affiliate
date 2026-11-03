@@ -11,7 +11,13 @@ import {
   PixelEventLog,
 } from '../types';
 import { hasSupabase, supabase } from './supabase';
-import { loginChatAdmin, logoutChatAdmin, verifyChatAdminSession } from './chat';
+import {
+  getPublicSocialSettings,
+  loginChatAdmin,
+  logoutChatAdmin,
+  savePublicSocialSettings,
+  verifyChatAdminSession,
+} from './chat';
 import monitorImg from '../assets/images/curved_gaming_monitor_1793432526940.jpg';
 import headphonesImg from '../assets/images/wireless_anc_headphones_1793432526819.jpg';
 import keyboardImg from '../assets/images/mechanical_keyboard_1793432527212.jpg';
@@ -69,6 +75,9 @@ const DEFAULT_SOCIAL_SETTINGS: import('../types').SocialSettings = {
   twitterUsername: 'kefayaan',
   autoReplyEnabled: true,
   autoReplyMessage: 'Thank you for messaging Kefayaan! An Amazon product specialist has received your inquiry and will reply shortly.',
+  chatHeaderVisible: true,
+  visibleChannels: ['whatsapp', 'instagram', 'facebook', 'tiktok', 'twitter'],
+  customLinks: [],
   webhookUrl: '',
 };
 
@@ -638,6 +647,9 @@ class StoreService {
         this.reloadFromStorage();
         this.notify();
       });
+      window.setInterval(() => {
+        void this.syncCloudSocialSettings();
+      }, 30_000);
     }
   }
 
@@ -714,6 +726,18 @@ class StoreService {
 
     this.recordVisitorSession();
     this.syncCloudProducts();
+    void this.syncCloudSocialSettings();
+  }
+
+  private async syncCloudSocialSettings(): Promise<void> {
+    try {
+      const settings = await getPublicSocialSettings();
+      if (!settings) return;
+      this.saveSocialSettingsLocally(settings);
+      this.notify();
+    } catch (error) {
+      console.warn('Cloud social settings could not be loaded', error);
+    }
   }
 
   private async syncCloudProducts() {
@@ -1210,12 +1234,21 @@ class StoreService {
     }
   }
 
-  public updateSocialSettings(settings: Partial<import('../types').SocialSettings>) {
+  public async updateSocialSettings(settings: Partial<import('../types').SocialSettings>) {
     const current = this.getSocialSettings();
     const updated = { ...current, ...settings };
-    localStorage.setItem(STORAGE_KEYS.SOCIAL_SETTINGS, JSON.stringify(updated));
+    const saved = await savePublicSocialSettings(updated);
+    this.saveSocialSettingsLocally(saved);
     this.notify();
-    return updated;
+    return saved;
+  }
+
+  private saveSocialSettingsLocally(settings: import('../types').SocialSettings): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SOCIAL_SETTINGS, JSON.stringify(settings));
+    } catch (error) {
+      console.warn('Local social settings cache could not be saved', error);
+    }
   }
 
   public getSocialUrl(channel: SocialChannel, message?: string, customHandle?: string): string {

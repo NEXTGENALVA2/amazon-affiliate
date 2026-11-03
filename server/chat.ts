@@ -93,12 +93,12 @@ export function createAdminSession(username: string): string {
     expiresAt: Date.now() + SESSION_DURATION_SECONDS * 1000,
   })).toString('base64url');
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  return `${SESSION_COOKIE}=${payload}.${signSession(payload)}; HttpOnly; SameSite=Strict; Path=/api/chat; Max-Age=${SESSION_DURATION_SECONDS}${secure}`;
+  return `${SESSION_COOKIE}=${payload}.${signSession(payload)}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=${SESSION_DURATION_SECONDS}${secure}`;
 }
 
 export function clearAdminSession(): string {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  return `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/api/chat; Max-Age=0${secure}`;
+  return `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/api; Max-Age=0${secure}`;
 }
 
 export function getAdminUsername(request: ChatRequest): string | null {

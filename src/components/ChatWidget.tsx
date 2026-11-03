@@ -247,53 +247,80 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const shopName = store.getStoreSettings().shopName || 'Kefayaan';
-  const phoneNumber = store.getSocialSettings().whatsappNumber.replace(/[^0-9+]/g, '');
+  const socialSettings = store.getSocialSettings();
+  const phoneNumber = socialSettings.whatsappNumber.replace(/[^0-9+]/g, '');
+  const availableChannelButtons: {
+    channel: Exclude<SocialChannel, 'website'>;
+    title: string;
+    label: string;
+    icon: React.ReactNode;
+    className: string;
+  }[] = [
+    { channel: 'whatsapp', title: 'Connect on WhatsApp', label: 'WA', icon: <MessageCircle className="w-3.5 h-3.5" />, className: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' },
+    { channel: 'instagram', title: 'Message on Instagram', label: 'Insta', icon: <Instagram className="w-3.5 h-3.5" />, className: 'bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200' },
+    { channel: 'facebook', title: 'Connect on Messenger', label: 'FB', icon: <Facebook className="w-3.5 h-3.5" />, className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' },
+    { channel: 'tiktok', title: 'Message on TikTok', label: 'TikTok', icon: <Video className="w-3.5 h-3.5" />, className: 'bg-slate-100 text-slate-900 hover:bg-slate-200 border-slate-300' },
+    { channel: 'twitter', title: 'Message on Twitter / X', label: 'X', icon: <Twitter className="w-3.5 h-3.5" />, className: 'bg-sky-50 text-sky-700 hover:bg-sky-100 border-sky-200' },
+  ];
+  const channelButtons = availableChannelButtons
+    .filter(({ channel }) => socialSettings.visibleChannels.includes(channel));
+  const customSocialLinks = socialSettings.customLinks.filter((link) => link.enabled);
 
   return (
     <div className="fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-40 flex flex-col items-end max-w-[calc(100vw-1.5rem)]">
       {/* Expanded Chat Drawer */}
       {isOpen && (
-        <div className="w-[calc(100vw-1.5rem)] sm:w-96 max-h-[82vh] h-[480px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden mb-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="relative w-[calc(100vw-1.5rem)] sm:w-96 max-h-[82vh] h-[480px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden mb-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
-          <div className="bg-slate-950 text-white px-4 py-3 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <div>
-                <h4 className="text-xs font-bold leading-tight">{shopName} Live Help</h4>
-                <p className="text-[10px] text-slate-400">Admin replies live or via Socials</p>
+          {socialSettings.chatHeaderVisible ? (
+            <div className="bg-slate-950 text-white px-4 py-3 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <div>
+                  <h4 className="text-xs font-bold leading-tight">{shopName} Live Help</h4>
+                  <p className="text-[10px] text-slate-400">Admin replies live or via Socials</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {phoneNumber && socialSettings.visibleChannels.includes('whatsapp') && (
+                  <a
+                    href={`tel:${phoneNumber}`}
+                    title="Call Kefayaan"
+                    aria-label="Call Kefayaan"
+                    className="p-1.5 text-emerald-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                )}
+                <button
+                  onClick={onToggle}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                  aria-label="Close chat"
+                >
+                  <Minimize2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              {phoneNumber && (
-                <a
-                  href={`tel:${phoneNumber}`}
-                  title="Call Kefayaan"
-                  aria-label="Call Kefayaan"
-                  className="p-1.5 text-emerald-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                  <Phone className="w-4 h-4" />
-                </a>
-              )}
-              <button
-                onClick={onToggle}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-                aria-label="Close chat"
-              >
-                <Minimize2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          ) : (
+            <button
+              onClick={onToggle}
+              className="absolute right-2 top-2 z-10 rounded-full bg-white/90 p-1.5 text-slate-500 shadow hover:text-slate-950"
+              aria-label="Close chat"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
 
           {/* Social Channels Selector Bar */}
           <div className="bg-slate-50 border-b border-slate-200 p-2 shrink-0">
             <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-1 mb-1.5">
               Choose Reply Channel:
             </div>
-            <div className="grid grid-cols-6 gap-1">
+            <div className="flex gap-1 overflow-x-auto">
               <button
                 onClick={() => setSelectedChannel('website')}
                 title="Chat directly on website"
-                className={`flex flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+                className={`flex min-w-12 flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium transition-colors ${
                   selectedChannel === 'website'
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -303,50 +330,30 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 <span className="text-[9px] mt-0.5">Site</span>
               </button>
 
-              <button
-                onClick={() => openSocialChannel('whatsapp')}
-                title="Connect on WhatsApp"
-                className="flex flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-[9px] mt-0.5">WA</span>
-              </button>
-
-              <button
-                onClick={() => openSocialChannel('instagram')}
-                title="Message on Instagram"
-                className="flex flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 transition-colors"
-              >
-                <Instagram className="w-3.5 h-3.5 text-pink-600" />
-                <span className="text-[9px] mt-0.5">Insta</span>
-              </button>
-
-              <button
-                onClick={() => openSocialChannel('facebook')}
-                title="Connect on Messenger"
-                className="flex flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
-              >
-                <Facebook className="w-3.5 h-3.5 text-blue-600" />
-                <span className="text-[9px] mt-0.5">FB</span>
-              </button>
-
-              <button
-                onClick={() => openSocialChannel('tiktok')}
-                title="Message on TikTok"
-                className="flex flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium bg-slate-100 text-slate-900 hover:bg-slate-200 border border-slate-300 transition-colors"
-              >
-                <Video className="w-3.5 h-3.5 text-slate-900" />
-                <span className="text-[9px] mt-0.5">TikTok</span>
-              </button>
-
-              <button
-                onClick={() => openSocialChannel('twitter')}
-                title="Message on Twitter / X"
-                className="flex flex-col items-center justify-center py-1.5 rounded-lg text-[10px] font-medium bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition-colors"
-              >
-                <Twitter className="w-3.5 h-3.5 text-sky-600" />
-                <span className="text-[9px] mt-0.5">X</span>
-              </button>
+              {channelButtons.map(({ channel, title, label, icon, className }) => (
+                <button
+                  key={channel}
+                  onClick={() => openSocialChannel(channel)}
+                  title={title}
+                  className={`flex min-w-12 flex-col items-center justify-center py-1.5 rounded-lg border text-[10px] font-medium transition-colors ${className}`}
+                >
+                  {icon}
+                  <span className="mt-0.5 text-[9px]">{label}</span>
+                </button>
+              ))}
+              {customSocialLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Open ${link.label}`}
+                  className="flex min-w-12 flex-col items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span className="mt-0.5 max-w-16 truncate text-[9px]">{link.label}</span>
+                </a>
+              ))}
             </div>
           </div>
 
@@ -357,7 +364,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 <MessageSquare className="w-8 h-8 text-slate-300 mb-2" />
                 <p className="text-xs font-semibold text-slate-600">Have a question about a product or Amazon link?</p>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Send a message below or choose WhatsApp / Instagram for instant direct response from our staff.
+                  Send a message below or use one of the social links above to reach us.
                 </p>
               </div>
             ) : (
@@ -503,7 +510,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
           <MessageSquare className="w-5 h-5 text-amber-400" />
           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950" />
         </div>
-        <span className="text-xs font-bold tracking-wide">Live Chat & WhatsApp</span>
+        <span className="text-xs font-bold tracking-wide">
+          {socialSettings.visibleChannels.includes('whatsapp') ? 'Live Chat & WhatsApp' : 'Live Chat'}
+        </span>
       </button>
     </div>
   );

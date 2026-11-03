@@ -175,6 +175,7 @@ async function handleGet(request: ChatRequest, response: ServerResponse): Promis
   if (action === 'admin-session') {
     const username = getAdminUsername(request);
     if (!username) throw new ChatApiError(401, 'Not authenticated.');
+    response.setHeader('Set-Cookie', createAdminSession(username));
     sendJson(response, 200, { data: { username } });
     return;
   }

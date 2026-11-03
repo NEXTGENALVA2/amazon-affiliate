@@ -36,6 +36,8 @@ The website chat uses Vercel's `/api/chat` function and Supabase. To enable it:
 
 Customer messages are stored in Supabase and the admin inbox refreshes every five seconds. Images (JPG, PNG, WebP, GIF; up to 5 MB each) and voice recordings (up to 2 minutes / 12 MB) are stored in the private bucket and served through expiring signed URLs. The chat includes a `tel:` call link using the configured WhatsApp phone number. This is a regular phone call link; live in-browser voice/video calling requires a separate calling provider and credentials.
 
+The same schema file also creates the private `storefront_settings` table used for social links and chat-header visibility. If you already ran an earlier version of the schema, run the current file again after deploying to add this table. Admins can then manage header visibility, built-in channel buttons, and up to eight custom profile links from **Admin → Social Accounts**. Settings are read publicly by the storefront and can only be changed from the authenticated admin session.
+
 The regular Vite dev server does not run Vercel functions. To test the API locally, configure the environment and use the Vercel CLI (`vercel dev`).
 
 ## Product URLs and SEO

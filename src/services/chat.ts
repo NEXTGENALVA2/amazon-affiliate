@@ -1,4 +1,4 @@
-import { ChatAttachment, ChatMessage, Conversation } from '../types';
+import { ChatAttachment, ChatMessage, Conversation, SocialSettings } from '../types';
 
 const VISITOR_ID_KEY = 'kefayaan_chat_visitor_id_v1';
 
@@ -96,4 +96,34 @@ export function verifyChatAdminSession(): Promise<{ username: string } | null> {
 
 export function logoutChatAdmin(): Promise<void> {
   return request('logout', { method: 'POST', body: JSON.stringify({}) });
+}
+
+async function requestSiteSettings<T>(options: RequestInit = {}): Promise<T> {
+  const response = await fetch('/api/site-settings', {
+    ...options,
+    credentials: 'same-origin',
+    headers: {
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
+    },
+  });
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    throw new Error('Site settings API is unavailable. Use the Vercel deployment or run the API with `vercel dev` locally.');
+  }
+  const result = await response.json() as ApiResponse<T>;
+  if (!response.ok) {
+    throw new Error(result.error || `Site settings request failed (${response.status}).`);
+  }
+  return result.data as T;
+}
+
+export function getPublicSocialSettings(): Promise<SocialSettings | null> {
+  return requestSiteSettings();
+}
+
+export function savePublicSocialSettings(settings: SocialSettings): Promise<SocialSettings> {
+  return requestSiteSettings({
+    method: 'POST',
+    body: JSON.stringify({ settings }),
+  });
 }
