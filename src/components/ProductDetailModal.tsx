@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, ExternalLink, Star, Play, CheckCircle2, MessageCircle, ShieldCheck, Truck, ChevronLeft, ChevronRight, Images } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
@@ -16,31 +16,34 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onBuyNow,
   onOpenChatWithProduct,
 }) => {
-  if (!product) return null;
-
-  const hasVariants = product.variants && product.variants.length > 0;
+  const hasVariants = Boolean(product?.variants?.length);
   const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
+  const activeVariant = hasVariants ? product?.variants?.[selectedVariantIdx] : null;
+  const currentPrice = activeVariant?.price !== undefined ? activeVariant.price : product?.price ?? 0;
+  const currentDealPrice = activeVariant?.dealPrice !== undefined ? activeVariant.dealPrice : product?.dealPrice ?? 0;
+  const currentAmazonUrl = activeVariant?.amazonUrl || product?.amazonUrl || '';
 
-  const activeVariant = hasVariants ? product.variants![selectedVariantIdx] : null;
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    const variantImages = activeVariant
+      ? [activeVariant.image, ...(activeVariant.gallery || [])].filter((img): img is string => Boolean(img))
+      : [];
+    if (variantImages.length) return [...new Set(variantImages.filter(Boolean))].slice(0, 20);
 
-  const currentPrice = activeVariant?.price !== undefined ? activeVariant.price : product.price;
-  const currentDealPrice = activeVariant?.dealPrice !== undefined ? activeVariant.dealPrice : product.dealPrice;
-  const currentAmazonUrl = activeVariant?.amazonUrl || product.amazonUrl;
+    return [...new Set([product.image, ...(Array.isArray(product.gallery) ? product.gallery : [])].filter(Boolean))].slice(0, 20);
+  }, [activeVariant, product]);
 
-  const allImages = React.useMemo(() => {
-    const list = [product.image];
-    if (product.gallery && Array.isArray(product.gallery)) {
-      product.gallery.forEach((img) => {
-        if (img && !list.includes(img)) list.push(img);
-      });
-    }
-    return list;
-  }, [product.image, product.gallery]);
-
-  const [activeMedia, setActiveMedia] = useState<'image' | 'video'>(
-    product.videoType !== 'none' && product.videoUrl ? 'video' : 'image'
-  );
+  const [activeMedia, setActiveMedia] = useState<'image' | 'video'>('image');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    setSelectedVariantIdx(0);
+    setActiveImageIndex(0);
+    setActiveMedia(product?.videoType !== 'none' && Boolean(product?.videoUrl) ? 'video' : 'image');
+  }, [product?.id]);
+
+  if (!product) return null;
 
   const discountPercent =
     currentPrice > currentDealPrice
@@ -61,11 +64,23 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   const selectedImage = allImages[activeImageIndex] || product.image;
+  const handleGalleryTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || allImages.length < 2) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    if (deltaX < 0) handleNextPhoto();
+    else handlePrevPhoto();
+  };
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm overflow-y-auto p-0 sm:p-4 md:p-6">
+      <div className="relative w-full max-w-4xl bg-white rounded-none sm:rounded-2xl md:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] flex flex-col">
         {/* Modal Top Bar */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/70 gap-2 shrink-0">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs min-w-0">
@@ -93,11 +108,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 p-4 sm:p-6 overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6 overflow-y-auto">
           {/* Left Column: Media Player (Images & Video Gallery) */}
           <div className="md:col-span-7 space-y-3">
             {/* Main Stage */}
-            <div className="relative aspect-square sm:aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-4">
+            <div
+              className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-2 sm:p-4 touch-pan-y"
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                touchStart.current = { x: touch.clientX, y: touch.clientY };
+              }}
+              onTouchEnd={handleGalleryTouchEnd}
+            >
               {activeMedia === 'video' && product.videoUrl ? (
                 youtubeEmbedUrl ? (
                   <iframe
@@ -142,6 +164,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={handlePrevPhoto}
+                        aria-label="Previous product image"
                         className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 transition-colors"
                         title="Previous photo"
                       >
@@ -150,6 +173,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={handleNextPhoto}
+                        aria-label="Next product image"
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 transition-colors"
                         title="Next photo"
                       >
@@ -282,7 +306,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         <button
                           key={v.id || idx}
                           type="button"
-                          onClick={() => setSelectedVariantIdx(idx)}
+                          onClick={() => {
+                            setSelectedVariantIdx(idx);
+                            setActiveImageIndex(0);
+                            setActiveMedia('image');
+                          }}
                           className={`flex items-center justify-between p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
                             isSelected
                               ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-xs font-bold ring-2 ring-amber-400/30'
@@ -364,4 +392,3 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     </div>
   );
 };
-

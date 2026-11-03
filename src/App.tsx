@@ -193,7 +193,7 @@ export default function App() {
       />
 
       {/* Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+      <main className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-20">
         
         {/* Section 1: US Flagship Trending Department Pillars (Cat Food, Gym Food, Smart Gadgets) */}
         <section id="departments" className="space-y-6">
@@ -553,7 +553,7 @@ export default function App() {
         )}
 
         {/* Section 5: OmniChannel Social Concierge & Customer Inquiries */}
-        <section className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-3xl p-8 sm:p-12 border border-slate-800 space-y-6">
+        <section className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 lg:p-12 border border-slate-800 space-y-6">
           <div className="max-w-2xl space-y-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
               OmniChannel US Concierge

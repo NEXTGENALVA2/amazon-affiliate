@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             e.preventDefault();
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="flex items-center gap-2.5 sm:gap-3 group shrink-0 min-w-0"
+          className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 group xl:flex-none"
         >
           <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 shadow-xs group-hover:border-amber-400 transition-colors shrink-0">
             <img
@@ -68,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-950 group-hover:text-amber-600 transition-colors truncate">
+              <span className="text-base sm:text-xl font-extrabold tracking-tight text-slate-950 group-hover:text-amber-600 transition-colors truncate">
                 {storeSettings.shopName}
               </span>
               {storeSettings.arabicName && (
@@ -84,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </a>
 
         {/* Zone 2: Navigation Links (Desktop & Wide Tablet) */}
-        <nav className="hidden lg:flex items-center gap-5 xl:gap-6 text-sm font-medium text-slate-600">
+        <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-600">
           <button
             onClick={() => onScrollToSection('deals')}
             className="hover:text-slate-950 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
@@ -155,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Mobile menu toggle button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-xl focus:outline-none cursor-pointer"
+            className="xl:hidden p-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-xl focus:outline-none cursor-pointer"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -168,11 +168,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         <>
           {/* Backdrop */}
           <div
-            className="lg:hidden fixed inset-0 top-[100px] z-30 bg-slate-950/40 backdrop-blur-xs"
+            className="xl:hidden fixed inset-0 top-[100px] z-30 bg-slate-950/40 backdrop-blur-xs"
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          <div className="lg:hidden relative z-40 border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-xl animate-in slide-in-from-top-2 duration-150">
+          <div className="xl:hidden relative z-40 border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-xl animate-in slide-in-from-top-2 duration-150">
             <a
               href={storeSettings.amazonOfficialStoreUrl}
               target="_blank"
@@ -252,4 +252,3 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
-

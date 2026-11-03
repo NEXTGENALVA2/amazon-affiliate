@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ExternalLink, Star, Play, Check, Images } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, ExternalLink, Star, Play, Check, Images } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency } from '../utils/helpers';
 
@@ -30,35 +30,103 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const hasVideo = product.videoType !== 'none' && Boolean(product.videoUrl);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
+  const [isImageHovered, setIsImageHovered] = useState(false);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const didSwipe = useRef(false);
 
   const allImages = React.useMemo(() => {
+    const variantImages = activeVariant
+      ? [activeVariant.image, ...(activeVariant.gallery || [])].filter((img): img is string => Boolean(img))
+      : [];
+    if (variantImages.length) return [...new Set(variantImages.filter(Boolean))].slice(0, 20);
+
     const list = [product.image];
     if (product.gallery) {
       product.gallery.forEach((img) => {
         if (img && !list.includes(img)) list.push(img);
       });
     }
-    return list;
-  }, [product.image, product.gallery]);
+    return list.slice(0, 20);
+  }, [activeVariant, product.image, product.gallery]);
 
-  const activeImage = allImages[currentImgIndex] || product.image;
+  const activeImage = allImages[isImageHovered && currentImgIndex === 0 ? 1 : currentImgIndex] || product.image;
+
+  const showPreviousImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImgIndex((index) => (index - 1 + allImages.length) % allImages.length);
+  };
+
+  const showNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImgIndex((index) => (index + 1) % allImages.length);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || allImages.length < 2) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    didSwipe.current = true;
+    setCurrentImgIndex((index) => (index + (deltaX < 0 ? 1 : -1) + allImages.length) % allImages.length);
+    window.setTimeout(() => {
+      didSwipe.current = false;
+    }, 350);
+  };
 
   return (
     <div
-      onClick={() => onSelect(product)}
+      onClick={() => {
+        if (didSwipe.current) return;
+        onSelect(product);
+      }}
       className="group relative flex flex-col bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-amber-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
     >
       {/* Top Media Container - responsive aspect-square with object-contain so vertical bags (cat food, gym protein) are NEVER cropped */}
-      <div className="relative aspect-square w-full bg-white p-4 flex items-center justify-center overflow-hidden border-b border-slate-100">
+      <div
+        className="relative aspect-[4/3] sm:aspect-square w-full bg-white p-3 sm:p-4 flex items-center justify-center overflow-hidden border-b border-slate-100"
+        onMouseEnter={() => setIsImageHovered(true)}
+        onMouseLeave={() => setIsImageHovered(false)}
+        onTouchStart={(e) => {
+          const touch = e.touches[0];
+          touchStart.current = { x: touch.clientX, y: touch.clientY };
+        }}
+        onTouchEnd={handleTouchEnd}
+      >
         <img
           src={activeImage}
           alt={product.title}
           referrerPolicy="no-referrer"
-          className="w-full h-full max-h-full object-contain object-center group-hover:scale-105 transition-transform duration-300 drop-shadow-xs"
+          className="w-full h-full max-h-full object-contain object-center transition-transform duration-300 drop-shadow-xs"
           onError={(e) => {
             (e.currentTarget as HTMLElement).style.display = 'none';
           }}
         />
+
+        {allImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={showPreviousImage}
+              aria-label="Previous product image"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full border border-slate-200 bg-white/90 p-1.5 text-slate-800 shadow-md transition-opacity sm:p-2 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={showNextImage}
+              aria-label="Next product image"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full border border-slate-200 bg-white/90 p-1.5 text-slate-800 shadow-md transition-opacity sm:p-2 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
 
         {/* Video Available Badge */}
         {hasVideo && (
@@ -169,6 +237,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedVariantIdx(vIdx);
+                      setCurrentImgIndex(0);
                     }}
                     className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer border ${
                       isSelected
@@ -244,4 +313,3 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     </div>
   );
 };
-

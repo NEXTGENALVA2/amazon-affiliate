@@ -44,6 +44,9 @@ const PRESET_IMAGES = [
   { label: 'Ergonomic Mesh Chair', url: ergonomicChair },
 ];
 
+const getVariantImages = (variant?: ProductVariant): string[] =>
+  [...new Set([variant?.image, ...(variant?.gallery || [])].filter((image): image is string => Boolean(image)))].slice(0, 20);
+
 export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   isOpen,
   onClose,
@@ -75,6 +78,8 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   const [newVarDealPrice, setNewVarDealPrice] = useState('');
   const [newVarPrice, setNewVarPrice] = useState('');
   const [newVarUrl, setNewVarUrl] = useState('');
+  const [newVarImages, setNewVarImages] = useState<string[]>([]);
+  const [isUploadingVariantImages, setIsUploadingVariantImages] = useState(false);
 
   const [videoType, setVideoType] = useState<'youtube' | 'direct' | 'none'>('youtube');
   const [videoUrl, setVideoUrl] = useState('');
@@ -126,6 +131,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
 
       // Load variants
       setVariants(productToEdit.variants && Array.isArray(productToEdit.variants) ? productToEdit.variants : []);
+      setNewVarImages([]);
 
       setVideoType(productToEdit.videoType || 'none');
       setVideoUrl(productToEdit.videoUrl || '');
@@ -147,6 +153,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setGallery([PRESET_IMAGES[0].url]);
       setCoverIndex(0);
       setVariants([]);
+      setNewVarImages([]);
       setVideoType('youtube');
       setVideoUrl('https://www.youtube.com/watch?v=kYJv6uS8Vnk');
       setBadge("Amazon's Choice");
@@ -316,6 +323,8 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       dealPrice: parseFloat(newVarDealPrice) || parseFloat(dealPrice) || 0,
       price: parseFloat(newVarPrice) || parseFloat(price) || 0,
       amazonUrl: newVarUrl.trim() ? formatAmazonAffiliateUrl(newVarUrl.trim(), affiliateTag) : undefined,
+      image: newVarImages[0],
+      gallery: newVarImages.slice(0, 20),
       inStock: true,
     };
     setVariants([...variants, newVariant]);
@@ -323,10 +332,78 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
     setNewVarDealPrice('');
     setNewVarPrice('');
     setNewVarUrl('');
+    setNewVarImages([]);
   };
 
   const handleRemoveVariant = (idToRemove: string) => {
     setVariants(variants.filter((v) => v.id !== idToRemove));
+  };
+
+  const handleVariantImageUpload = async (
+    variantId: string | null,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const input = e.currentTarget;
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+
+    const targetVariant = variantId ? variants.find((variant) => variant.id === variantId) : null;
+    const currentImages = variantId ? getVariantImages(targetVariant) : newVarImages;
+    const remainingSlots = 20 - currentImages.length;
+    if (remainingSlots <= 0) {
+      alert('This variant already has the maximum of 20 images.');
+      input.value = '';
+      return;
+    }
+
+    setIsUploadingVariantImages(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (const file of files.slice(0, remainingSlots)) {
+        const uploadedUrl = await uploadImageToSupabase(file);
+        if (uploadedUrl) {
+          uploadedUrls.push(uploadedUrl);
+          continue;
+        }
+
+        const reader = new FileReader();
+        const result = await new Promise<string | null>((resolve) => {
+          reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        });
+        if (result) uploadedUrls.push(result);
+      }
+
+      if (variantId) {
+        setVariants((previous) => previous.map((variant) => {
+          if (variant.id !== variantId) return variant;
+          const gallery = [...currentImages, ...uploadedUrls].slice(0, 20);
+          return { ...variant, image: gallery[0], gallery };
+        }));
+      } else {
+        setNewVarImages((previous) => [...previous, ...uploadedUrls].slice(0, 20));
+      }
+    } catch (error) {
+      console.warn('Variant image upload failed', error);
+      alert('Variant image upload failed. Please try again.');
+    } finally {
+      setIsUploadingVariantImages(false);
+      input.value = '';
+    }
+  };
+
+  const handleRemoveVariantImage = (variantId: string, imageIndex: number) => {
+    setVariants((previous) => previous.map((variant) => {
+      if (variant.id !== variantId) return variant;
+      const currentImages = getVariantImages(variant);
+      const gallery = currentImages.filter((_, index) => index !== imageIndex);
+      return { ...variant, image: gallery[0], gallery };
+    }));
+  };
+
+  const handleRemoveNewVariantImage = (imageIndex: number) => {
+    setNewVarImages((previous) => previous.filter((_, index) => index !== imageIndex));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -351,7 +428,17 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       affiliateTag: affiliateTag.trim(),
       image: primaryImage,
       gallery: gallery.slice(0, 20),
-      variants: variants,
+      variants: variants.map((variant) => {
+        const variantImages = getVariantImages(variant);
+        return {
+          ...variant,
+          amazonUrl: variant.amazonUrl?.trim()
+            ? formatAmazonAffiliateUrl(variant.amazonUrl.trim(), affiliateTag)
+            : undefined,
+          image: variantImages[0],
+          gallery: variantImages,
+        };
+      }),
       videoType,
       videoUrl: videoUrl.trim(),
       badge,
@@ -368,15 +455,15 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   const youtubeEmbed = videoType === 'youtube' && videoUrl ? getYouTubeEmbedUrl(videoUrl) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-6 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm overflow-y-auto p-0 sm:p-6">
+      <div className="relative w-full max-w-4xl bg-white rounded-none sm:rounded-2xl md:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/80">
-          <div>
-            <h3 className="text-base font-extrabold text-slate-950">
+        <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/80">
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-950">
               {productToEdit ? 'Edit Amazon Product Details' : 'Upload New Amazon Trending Product'}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-[10px] sm:text-xs text-slate-500">
               Add up to 20 images, detailed description, video review, and direct Amazon affiliate link
             </p>
           </div>
@@ -389,7 +476,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-7 text-xs">
+        <form onSubmit={handleSubmit} className="min-h-0 p-3 sm:p-6 overflow-y-auto space-y-6 sm:space-y-7 text-xs">
           {/* Section 1: Product Identity & Proper Category */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-slate-900">
@@ -953,7 +1040,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
 
               {/* Optional Custom Amazon link for this variant */}
               <div className="flex items-center gap-2 pt-1 text-xs">
-                <span className="text-[11px] font-semibold text-slate-500 shrink-0">Custom Variant Amazon Link (Optional):</span>
+                <span className="text-[11px] font-semibold text-slate-500 shrink-0">Variant Amazon Affiliate Link (Optional):</span>
                 <input
                   type="url"
                   value={newVarUrl}
@@ -962,43 +1049,143 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                   className="flex-1 px-3 py-1 bg-white border border-slate-300 rounded-xl focus:outline-none font-mono text-[11px]"
                 />
               </div>
+
+              <div className="space-y-2 border-t border-slate-200 pt-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-slate-700">
+                    Images for this variant: {newVarImages.length} / 20
+                  </span>
+                  <label className={`inline-flex w-fit cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-semibold ${
+                    isUploadingVariantImages
+                      ? 'cursor-not-allowed border-slate-200 text-slate-400'
+                      : 'border-slate-300 bg-white text-slate-700 hover:border-amber-400'
+                  }`}>
+                    <Upload className="h-3.5 w-3.5" />
+                    {isUploadingVariantImages ? 'Uploading...' : 'Add variant photos'}
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleVariantImageUpload(null, e)}
+                      disabled={isUploadingVariantImages || newVarImages.length >= 20}
+                    />
+                  </label>
+                </div>
+                {newVarImages.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto py-1">
+                    {newVarImages.map((image, index) => (
+                      <div key={`${image}-${index}`} className="relative h-14 w-14 shrink-0 rounded-lg border border-slate-200 bg-white p-1">
+                        <img src={image} alt={`Variant photo ${index + 1}`} className="h-full w-full object-contain" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNewVariantImage(index)}
+                          aria-label={`Remove variant photo ${index + 1}`}
+                          className="absolute -right-1.5 -top-1.5 rounded-full bg-slate-900 p-1 text-white shadow"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* List of Added Variants */}
             {variants.length > 0 ? (
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-slate-600">Configured Variants:</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-96 overflow-y-auto p-1">
                   {variants.map((v) => (
                     <div
                       key={v.id}
-                      className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-amber-300 transition-colors"
+                      className="min-w-0 space-y-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xs transition-colors hover:border-amber-300"
                     >
-                      <div className="space-y-0.5 truncate pr-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-xs text-slate-900 truncate">{v.name}</span>
-                          <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] uppercase font-semibold">
-                            {v.optionType}
-                          </span>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-bold text-xs text-slate-900 break-words">{v.name}</span>
+                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] uppercase font-semibold">
+                              {v.optionType}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-baseline gap-2 text-xs">
+                            <span className="font-extrabold text-amber-700 font-mono">${v.dealPrice?.toFixed(2)}</span>
+                            {v.price && v.price > (v.dealPrice || 0) && (
+                              <span className="text-slate-400 line-through text-[11px] font-mono">${v.price.toFixed(2)}</span>
+                            )}
+                            {v.amazonUrl && (
+                              <span className="text-[10px] text-emerald-600 font-medium">· Custom Link Set</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-baseline gap-2 text-xs">
-                          <span className="font-extrabold text-amber-700 font-mono">${v.dealPrice?.toFixed(2)}</span>
-                          {v.price && v.price > (v.dealPrice || 0) && (
-                            <span className="text-slate-400 line-through text-[11px] font-mono">${v.price.toFixed(2)}</span>
-                          )}
-                          {v.amazonUrl && (
-                            <span className="text-[10px] text-emerald-600 font-medium">· Custom Link Set</span>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVariant(v.id)}
+                          className="shrink-0 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete variant"
+                          aria-label={`Delete ${v.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveVariant(v.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        title="Delete variant"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] font-semibold text-slate-500">Variant Amazon affiliate link</span>
+                        <input
+                          type="url"
+                          value={v.amazonUrl || ''}
+                          onChange={(e) => setVariants((previous) => previous.map((variant) =>
+                            variant.id === v.id
+                              ? { ...variant, amazonUrl: e.target.value || undefined }
+                              : variant
+                          ))}
+                          placeholder="Blank uses the main product link"
+                          className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 font-mono text-[10px] focus:border-amber-400 focus:outline-none"
+                        />
+                      </label>
+                      {(() => {
+                        const variantImages = getVariantImages(v);
+                        return (
+                          <div className="space-y-1.5 border-t border-slate-100 pt-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-semibold text-slate-500">
+                                Variant gallery: {variantImages.length} / 20
+                              </span>
+                              <label className={`cursor-pointer text-[10px] font-semibold ${
+                                isUploadingVariantImages || variantImages.length >= 20 ? 'text-slate-400' : 'text-amber-700 hover:text-amber-800'
+                              }`}>
+                                Add photos
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleVariantImageUpload(v.id, e)}
+                                  disabled={isUploadingVariantImages || variantImages.length >= 20}
+                                />
+                              </label>
+                            </div>
+                            {variantImages.length > 0 && (
+                              <div className="flex gap-1.5 overflow-x-auto py-1">
+                                {variantImages.map((image, index) => (
+                                  <div key={`${image}-${index}`} className="relative h-12 w-12 shrink-0 rounded-md border border-slate-200 bg-white p-1">
+                                    <img src={image} alt={`${v.name} photo ${index + 1}`} className="h-full w-full object-contain" />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveVariantImage(v.id, index)}
+                                      aria-label={`Remove photo ${index + 1} from ${v.name}`}
+                                      className="absolute -right-1 -top-1 rounded-full bg-slate-900 p-0.5 text-white shadow"
+                                    >
+                                      <X className="h-2.5 w-2.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
@@ -1131,7 +1318,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
           </div>
 
           {/* Footer Submit */}
-          <div className="pt-5 border-t border-slate-200 flex items-center justify-end gap-3 sticky bottom-0 bg-white py-2">
+          <div className="pt-4 sm:pt-5 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 sticky bottom-0 bg-white py-2">
             <button
               type="button"
               onClick={onClose}

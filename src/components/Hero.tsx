@@ -76,7 +76,7 @@ export const Hero: React.FC<HeroProps> = ({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-14">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-10 sm:pb-14">
         {/* Main 2-Column Split */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: US Media Brand Headline & Search */}
@@ -98,11 +98,11 @@ export const Hero: React.FC<HeroProps> = ({
                 </a>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.12] text-balance">
+              <h1 className="text-[1.8rem] sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.12] text-balance">
                 Verified Amazon Best Sellers, Curated by Kefayaan.
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
+              <p className="text-sm sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
                 Skip the sponsored noise. We benchmark Amazon US’s top-selling pet food, gym nutrition, smart kitchen gadgets, and tech electronics with hands-on tests, full variants, and 1-click official checkout.
               </p>
             </div>
@@ -138,7 +138,7 @@ export const Hero: React.FC<HeroProps> = ({
                 placeholder="Search Amazon US bestsellers (e.g. Cat Food, Whey Protein, Air Fryer, Monitor)..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full pl-10 pr-24 py-3.5 text-sm bg-white/10 border border-white/20 rounded-xl shadow-inner text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-slate-900 transition-all backdrop-blur-sm"
+                className="w-full min-w-0 pl-10 pr-20 sm:pr-24 py-3.5 text-xs sm:text-sm bg-white/10 border border-white/20 rounded-xl shadow-inner text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-slate-900 transition-all backdrop-blur-sm"
               />
               {searchQuery && (
                 <button

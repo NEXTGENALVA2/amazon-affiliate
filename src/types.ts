@@ -6,6 +6,7 @@ export interface ProductVariant {
   dealPrice?: number;
   amazonUrl?: string;
   image?: string;
+  gallery?: string[];
   sku?: string;
   inStock?: boolean;
 }
@@ -141,4 +142,3 @@ export interface PixelEventLog {
   currency: string;
   status: 'fired' | 'simulated';
 }
-
