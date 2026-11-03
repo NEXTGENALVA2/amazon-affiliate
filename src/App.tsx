@@ -243,7 +243,8 @@ export default function App() {
 
   const handleGoHome = () => {
     if (window.location.pathname !== '/' || window.location.search) {
-      window.history.pushState({}, '', '/');
+      window.location.assign('/');
+      return;
     }
     setSelectedProduct(null);
     setActiveSearchQuery(null);

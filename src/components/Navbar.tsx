@@ -53,10 +53,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <a
           href="/"
           onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
             e.preventDefault();
             onGoHome();
             setMobileMenuOpen(false);
           }}
+          aria-label={`${storeSettings.shopName} home`}
           className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 group xl:flex-none"
         >
           <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 shadow-xs group-hover:border-amber-400 transition-colors shrink-0">
