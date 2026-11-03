@@ -146,7 +146,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Modal Body */}
         <div className={isPage ? 'grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6' : 'grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6 overflow-y-auto'}>
           {/* Left Column: Media Player (Images & Video Gallery) */}
-          <div className="md:col-span-7 space-y-3">
+          <div className="order-2 space-y-3 md:order-none md:col-span-7">
             {/* Main Stage */}
             <div
               className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-2 sm:p-4 touch-pan-y"
@@ -268,22 +268,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </div>
             </div>
 
-            {/* In-depth description section (Prominent & Clear) */}
-            <div className="pt-4 border-t border-slate-100 space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                <span>Product Description & US Buying Guide</span>
-              </h4>
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                  {product.description ||
-                    'Verified authentic US stock. Sourced directly from Amazon-certified suppliers with verified serial numbers, factory-sealed packaging, and full manufacturer warranty.'}
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Contiguous Purchase Module (PDP) */}
-          <div className="md:col-span-5 flex flex-col justify-between space-y-6">
+          <div className="order-1 flex flex-col gap-6 self-start md:order-none md:col-span-5">
             <div className="space-y-4">
               {/* Product Title */}
               <h2 className="text-lg sm:text-xl font-extrabold text-slate-950 leading-snug">
@@ -367,6 +355,32 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
               )}
 
+              {/* Purchase actions stay near price and variants instead of the end of long page content. */}
+              <div className="space-y-3 pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => onBuyNow(product, currentAmazonUrl)}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-6 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer group"
+                >
+                  <span>Buy Now on Amazon</span>
+                  <ExternalLink className="w-4 h-4 text-slate-950 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenChatWithProduct(product);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Ask Question on Live Chat or WhatsApp</span>
+                </button>
+
+                <p className="text-[10px] text-slate-400 text-center leading-tight">
+                  Clicking opens official Amazon page in a secure new tab. Affiliate tracking applies without altering your purchase price.
+                </p>
+              </div>
+
               {/* Feature Highlights */}
               <div className="space-y-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -395,31 +409,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Bottom Actions */}
-            <div className="space-y-3 pt-4 border-t border-slate-200">
-              {/* Primary Buy Now on Amazon CTA with Variant URL */}
-              <button
-                onClick={() => onBuyNow(product, currentAmazonUrl)}
-                className="w-full flex items-center justify-center gap-2 py-3 px-6 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer group"
-              >
-                <span>Buy Now on Amazon</span>
-                <ExternalLink className="w-4 h-4 text-slate-950 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+          </div>
 
-              {/* Inquire via Social / Live Chat */}
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenChatWithProduct(product);
-                }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-slate-500" />
-                <span>Ask Question on Live Chat or WhatsApp</span>
-              </button>
-
-              <p className="text-[10px] text-slate-400 text-center leading-tight">
-                Clicking opens official Amazon page in a secure new tab. Affiliate tracking applies without altering your purchase price.
+          {/* Keep long-form copy below the media and purchase module on every screen size. */}
+          <div className="order-3 space-y-2 border-t border-slate-100 pt-4 md:order-none md:col-span-12">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+              Product Description & US Buying Guide
+            </h4>
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {product.description ||
+                  'Verified authentic US stock. Sourced directly from Amazon-certified suppliers with verified serial numbers, factory-sealed packaging, and full manufacturer warranty.'}
               </p>
             </div>
           </div>
