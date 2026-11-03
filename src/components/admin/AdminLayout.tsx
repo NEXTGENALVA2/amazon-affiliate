@@ -74,9 +74,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
                   Admin
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-serif truncate" dir="rtl">
-                کفایান · Official Associate
-              </p>
+              <p className="text-[10px] text-slate-400 truncate">Official Associate</p>
             </div>
           </div>
 

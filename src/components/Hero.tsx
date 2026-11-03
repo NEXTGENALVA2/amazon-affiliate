@@ -80,7 +80,7 @@ export const Hero: React.FC<HeroProps> = ({
               <div className="flex flex-wrap items-center gap-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs text-amber-300 font-semibold backdrop-blur-sm">
                   <Award className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Kefayaan (کفایان) · Verified Amazon Associate Partner</span>
+                  <span>Kefayaan · Verified Amazon Associate Partner</span>
                 </div>
                 <a
                   href="https://link.amazon/B0dbjUEFY"

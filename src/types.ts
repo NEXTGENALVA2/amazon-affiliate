@@ -13,7 +13,6 @@ export interface ProductVariant {
 
 export interface StoreSettings {
   shopName: string;
-  arabicName?: string;
   tagline: string;
   logoUrl: string;
   amazonOfficialStoreUrl: string;

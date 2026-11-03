@@ -42,7 +42,6 @@ const STORAGE_KEYS = {
 
 const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shopName: 'Kefayaan',
-  arabicName: 'کفایان',
   tagline: 'Amazon US Official Storefront & Verified Deals',
   logoUrl: '/assets/aistudio/DP_af5fa802.png',
   amazonOfficialStoreUrl: 'https://link.amazon/B0dbjUEFY',

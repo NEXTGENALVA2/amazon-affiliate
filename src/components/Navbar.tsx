@@ -74,11 +74,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-base sm:text-xl font-extrabold tracking-tight text-slate-950 group-hover:text-amber-600 transition-colors truncate">
                 {storeSettings.shopName}
               </span>
-              {storeSettings.arabicName && (
-                <span className="text-xs font-semibold text-slate-400 font-serif hidden xs:inline" dir="rtl">
-                  {storeSettings.arabicName}
-                </span>
-              )}
             </div>
             <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium tracking-wide uppercase truncate">
               Amazon Official Associate Store

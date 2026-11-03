@@ -101,7 +101,7 @@ export default function App() {
 
   useEffect(() => {
     document.title = activeSearchQuery === null
-      ? 'Kefayaan (کفایান) - Amazon Official Store & Curated US Best Sellers'
+      ? 'Kefayaan - Amazon Official Store & Curated US Best Sellers'
       : `Search results for ${activeSearchQuery || 'products'} | Kefayaan`;
   }, [activeSearchQuery]);
 
@@ -792,7 +792,6 @@ export default function App() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg">Kefayaan</span>
-                    <span className="text-xs text-slate-400 font-serif" dir="rtl">کفایان</span>
                   </div>
                 </div>
               </div>
@@ -856,7 +855,7 @@ export default function App() {
 
           <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
             <p>
-              © {new Date().getFullYear()} Kefayaan (کفایান). Amazon Associate Partner. Fully compliant with Vercel SPA deployment.
+              © {new Date().getFullYear()} Kefayaan. Amazon Associate Partner. Fully compliant with Vercel SPA deployment.
             </p>
             <p className="text-center sm:text-right max-w-md">
               FTC Disclosure: Kefayaan is an Amazon Associate. We earn from qualifying purchases with zero price markup to you. Amazon and Amazon Prime are registered trademarks of Amazon.com, Inc.

@@ -180,19 +180,6 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
               />
             </div>
 
-            {/* Arabic Name */}
-            <div className="space-y-1">
-              <label className="font-semibold text-slate-700">Arabic Calligraphy Subtitle</label>
-              <input
-                type="text"
-                value={storeSettings.arabicName || ''}
-                onChange={(e) => handleStoreChange('arabicName', e.target.value)}
-                placeholder="e.g. کفایان"
-                dir="rtl"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none font-serif text-sm"
-              />
-            </div>
-
             {/* Amazon Official Store Link */}
             <div className="md:col-span-2 space-y-1">
               <div className="flex items-center justify-between">
