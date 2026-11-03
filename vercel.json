@@ -12,17 +12,8 @@
       "destination": "/api/robots"
     },
     {
-      "source": "/products/:slug",
-      "destination": "/api/product-page?slug=:slug"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/product-page.ts": {
-      "includeFiles": "dist/**"
-    }
-  }
+  ]
 }
