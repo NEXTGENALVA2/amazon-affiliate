@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ExternalLink,
+  ArrowLeft,
   ShieldCheck,
   Video,
   Play,
@@ -24,6 +25,7 @@ import { store } from './services/store';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { ProductCard } from './components/ProductCard';
+import { ProductSearchBar } from './components/ProductSearchBar';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { ChatWidget } from './components/ChatWidget';
 import { AdminLoginModal } from './components/AdminLoginModal';
@@ -32,6 +34,18 @@ import { BuyerComparisonTable } from './components/BuyerComparisonTable';
 import { formatCurrency } from './utils/helpers';
 import { pixelService } from './services/pixelService';
 
+const getSearchQueryFromLocation = (): string | null => {
+  if (window.location.pathname.replace(/\/+$/, '') !== '/search') return null;
+  return new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
+};
+
+const matchesProductQuery = (product: Product, query: string): boolean => {
+  const searchTerm = query.trim().toLocaleLowerCase();
+  if (!searchTerm) return false;
+  return [product.title, product.brand, product.category]
+    .some((value) => value.toLocaleLowerCase().includes(searchTerm));
+};
+
 export default function App() {
   const [currentView, setCurrentView] = useState<'storefront' | 'admin'>('storefront');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -39,7 +53,9 @@ export default function App() {
 
   // Store data
   const [products, setProducts] = useState<Product[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const initialSearchQuery = getSearchQueryFromLocation();
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery ?? '');
+  const [activeSearchQuery, setActiveSearchQuery] = useState<string | null>(initialSearchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
   
   // Modals & Chat
@@ -72,15 +88,57 @@ export default function App() {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      const query = getSearchQueryFromLocation();
+      setActiveSearchQuery(query);
+      setSearchQuery(query ?? '');
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    document.title = activeSearchQuery === null
+      ? 'Kefayaan (کفایান) - Amazon Official Store & Curated US Best Sellers'
+      : `Search results for ${activeSearchQuery || 'products'} | Kefayaan`;
+  }, [activeSearchQuery]);
+
+  const handleSearchSubmit = (value: string) => {
+    const query = value.trim();
+    if (!query) {
+      handleClearSearch();
+      return;
+    }
+
+    window.history.pushState({}, '', `/search?q=${encodeURIComponent(query)}`);
+    setSearchQuery(query);
+    setActiveSearchQuery(query);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleClearSearch = () => {
+    if (activeSearchQuery !== null) {
+      window.history.pushState({}, '', '/');
+      setActiveSearchQuery(null);
+    }
+    setSearchQuery('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Filter products
   const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-    const matchesSearch =
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = Boolean(searchQuery.trim()) || selectedCategory === 'All' || p.category === selectedCategory;
+    const matchesSearch = !searchQuery.trim() || matchesProductQuery(p, searchQuery);
     return matchesCategory && matchesSearch;
   });
+  const liveSearchResults = searchQuery.trim()
+    ? products.filter((product) => matchesProductQuery(product, searchQuery))
+    : [];
+  const committedSearchResults = activeSearchQuery === null
+    ? []
+    : products.filter((product) => matchesProductQuery(product, activeSearchQuery));
 
   // Dedicated Video Reviews list
   const videoReviewProducts = products.filter((p) => p.videoType !== 'none' && p.videoUrl);
@@ -134,10 +192,15 @@ export default function App() {
   };
 
   const handleScrollTo = (id: string) => {
-    const elem = document.getElementById(id);
-    if (elem) {
-      elem.scrollIntoView({ behavior: 'smooth' });
+    const scrollToSection = () => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    if (activeSearchQuery !== null) {
+      window.history.pushState({}, '', '/');
+      setActiveSearchQuery(null);
+      setSearchQuery('');
+      window.setTimeout(scrollToSection, 0);
+      return;
     }
+    scrollToSection();
   };
 
   // If in Admin View and logged in
@@ -174,25 +237,90 @@ export default function App() {
         onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
         onGoToAdmin={() => setCurrentView('admin')}
         onOpenSocialHub={() => setIsChatOpen(true)}
+        onGoHome={handleClearSearch}
         onScrollToSection={handleScrollTo}
       />
 
-      {/* Hero Section */}
-      <Hero
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
-        categories={categories}
-        trendingProduct={products[0]}
-        onBuyFeatured={handleBuyNow}
-        onOpenFeaturedVideo={(prod) => {
-          const target = prod || products[0];
-          if (target) setSelectedProduct(target);
-        }}
+      <ProductSearchBar
+        query={searchQuery}
+        results={liveSearchResults}
+        onQueryChange={setSearchQuery}
+        onClear={handleClearSearch}
+        onSubmit={handleSearchSubmit}
+        onSelectProduct={handleSelectProduct}
+        isSearchPage={activeSearchQuery !== null}
       />
 
+      {/* Hero Section */}
+      {activeSearchQuery === null && (
+        <Hero
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          categories={categories}
+          trendingProduct={products[0]}
+          onBuyFeatured={handleBuyNow}
+          onOpenFeaturedVideo={(prod) => {
+            const target = prod || products[0];
+            if (target) setSelectedProduct(target);
+          }}
+        />
+      )}
+
       {/* Main Content Body */}
+      {activeSearchQuery !== null ? (
+        <main className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <section aria-labelledby="search-results-title" className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to store
+                </button>
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Product search</p>
+                <h1 id="search-results-title" className="mt-1 break-words text-2xl font-extrabold text-slate-950 sm:text-3xl">
+                  Results for “{activeSearchQuery || ' '}”
+                </h1>
+                <p className="mt-2 text-sm text-slate-500">
+                  {committedSearchResults.length} exact text match{committedSearchResults.length === 1 ? '' : 'es'} in product name, brand, or category.
+                </p>
+              </div>
+            </div>
+
+            {committedSearchResults.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+                {committedSearchResults.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onSelect={handleSelectProduct}
+                    onBuyNow={handleBuyNow}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center">
+                <p className="text-base font-bold text-slate-800">
+                  {activeSearchQuery ? `No exact matches found for “${activeSearchQuery}”.` : 'Enter a product name to search.'}
+                </p>
+                <p className="text-sm text-slate-500">
+                  Search matches the exact text you type in product names, brands, and categories—no fuzzy results.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="mt-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-slate-800"
+                >
+                  Browse all products
+                </button>
+              </div>
+            )}
+          </section>
+        </main>
+      ) : (
       <main className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-20">
         
         {/* Section 1: US Flagship Trending Department Pillars (Cat Food, Gym Food, Smart Gadgets) */}
@@ -645,6 +773,7 @@ export default function App() {
           </div>
         </section>
       </main>
+      )}
 
       {/* Footer */}
       {/* Footer */}

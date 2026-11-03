@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Search,
   CheckCircle2,
   Play,
   ArrowUpRight,
@@ -16,8 +15,6 @@ import { Product } from '../types';
 import { formatCurrency } from '../utils/helpers';
 
 interface HeroProps {
-  searchQuery: string;
-  onSearchChange: (q: string) => void;
   selectedCategory: string;
   onSelectCategory: (cat: string) => void;
   categories: string[];
@@ -27,8 +24,6 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({
-  searchQuery,
-  onSearchChange,
   selectedCategory,
   onSelectCategory,
   categories,
@@ -79,7 +74,7 @@ export const Hero: React.FC<HeroProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-10 sm:pb-14">
         {/* Main 2-Column Split */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: US Media Brand Headline & Search */}
+          {/* Left Column: US Media Brand Headline */}
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
@@ -106,8 +101,6 @@ export const Hero: React.FC<HeroProps> = ({
                 Skip the sponsored noise. We benchmark Amazon US’s top-selling pet food, gym nutrition, smart kitchen gadgets, and tech electronics with hands-on tests, full variants, and 1-click official checkout.
               </p>
             </div>
-
-
             {/* Quick Department Selector Pills */}
             <div className="space-y-2 pt-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -130,57 +123,6 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
             </div>
 
-            {/* Live Search Bar */}
-            <div className="relative max-w-xl pt-2">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search Amazon US bestsellers (e.g. Cat Food, Whey Protein, Air Fryer, Monitor)..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full min-w-0 pl-10 pr-20 sm:pr-24 py-3.5 text-xs sm:text-sm bg-white/10 border border-white/20 rounded-xl shadow-inner text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-slate-900 transition-all backdrop-blur-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Quick trending search suggestions */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
-              <span className="text-[11px] font-medium text-slate-500">Popular Searches:</span>
-              <button
-                onClick={() => onSearchChange('Cat Food')}
-                className="hover:text-amber-400 underline decoration-slate-600 underline-offset-2"
-              >
-                Salmon Cat Food
-              </button>
-              <span>·</span>
-              <button
-                onClick={() => onSearchChange('Protein')}
-                className="hover:text-amber-400 underline decoration-slate-600 underline-offset-2"
-              >
-                Whey Protein Isolate
-              </button>
-              <span>·</span>
-              <button
-                onClick={() => onSearchChange('Air Fryer')}
-                className="hover:text-amber-400 underline decoration-slate-600 underline-offset-2"
-              >
-                Dual Air Fryer
-              </button>
-              <span>·</span>
-              <button
-                onClick={() => onSearchChange('Headphones')}
-                className="hover:text-amber-400 underline decoration-slate-600 underline-offset-2"
-              >
-                Noise-Canceling
-              </button>
-            </div>
           </div>
 
           {/* Right Column: "Today's #1 Spotlight Amazon Deal" Showcase Card */}

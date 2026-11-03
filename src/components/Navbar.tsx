@@ -8,6 +8,7 @@ interface NavbarProps {
   onOpenAdminLogin: () => void;
   onGoToAdmin: () => void;
   onOpenSocialHub: () => void;
+  onGoHome: () => void;
   onScrollToSection: (sectionId: string) => void;
 }
 
@@ -16,6 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAdminLogin,
   onGoToAdmin,
   onOpenSocialHub,
+  onGoHome,
   onScrollToSection,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -49,10 +51,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-6 px-3 sm:px-6 lg:px-8 h-16 sm:h-18">
         {/* Zone 1: Kefayaan Brand with Official Logo */}
         <a
-          href="#"
+          href="/"
           onClick={(e) => {
             e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            onGoHome();
+            setMobileMenuOpen(false);
           }}
           className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3 group xl:flex-none"
         >
