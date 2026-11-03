@@ -1,0 +1,6 @@
+{
+  "name": "AuraGear - Premium Amazon Affiliate Showcase & Admin Hub",
+  "description": "High-converting curated Amazon affiliate storefront with direct Buy Now redirection, real-time outbound click & visitor analytics, video product reviews, and unified multi-channel social inbox.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
