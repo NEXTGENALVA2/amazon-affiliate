@@ -98,97 +98,97 @@ export const BuyerComparisonTable: React.FC<BuyerComparisonTableProps> = ({
                   <th className="py-3 px-4 font-bold uppercase tracking-wider text-[11px] text-right">Direct Amazon Link</th>
                 </tr>
               </thead>
-            <tbody className="divide-y divide-slate-100">
-              {winners.map((win, idx) => {
-                const prod = products.find((p) => p.id === win.productId);
-                if (!prod) return null;
-                const discount = Math.round(((prod.price - prod.dealPrice) / prod.price) * 100);
+              <tbody className="divide-y divide-slate-100">
+                {winners.map((win, idx) => {
+                  const prod = products.find((p) => p.id === win.productId);
+                  if (!prod) return null;
+                  const discount = Math.round(((prod.price - prod.dealPrice) / prod.price) * 100);
 
-                return (
-                  <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                    {/* Award Badge */}
-                    <td className="py-4 px-4 align-middle">
-                      <span className="font-extrabold text-slate-900 bg-amber-100/70 text-amber-950 px-2.5 py-1 rounded-md text-[11px] inline-block whitespace-nowrap">
-                        {win.award}
-                      </span>
-                      <div className="text-[10px] text-slate-400 mt-1 italic max-w-[150px]">
-                        {win.idealFor}
-                      </div>
-                    </td>
-
-                    {/* Product Name & Thumbnail */}
-                    <td className="py-4 px-4 align-middle">
-                      <div
-                        onClick={() => onSelectProduct(prod)}
-                        className="flex items-center gap-3 cursor-pointer group"
-                      >
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
-                          <img
-                            src={prod.image}
-                            alt={prod.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            referrerPolicy="no-referrer"
-                          />
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                      {/* Award Badge */}
+                      <td className="py-4 px-4 align-middle">
+                        <span className="font-extrabold text-slate-900 bg-amber-100/70 text-amber-950 px-2.5 py-1 rounded-md text-[11px] inline-block whitespace-nowrap">
+                          {win.award}
+                        </span>
+                        <div className="text-[10px] text-slate-400 mt-1 italic max-w-[150px]">
+                          {win.idealFor}
                         </div>
-                        <div className="max-w-xs space-y-0.5">
-                          <div className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-1">
-                            {prod.title}
+                      </td>
+
+                      {/* Product Name & Thumbnail */}
+                      <td className="py-4 px-4 align-middle">
+                        <div
+                          onClick={() => onSelectProduct(prod)}
+                          className="flex items-center gap-3 cursor-pointer group"
+                        >
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
+                            <img
+                              src={prod.image}
+                              alt={prod.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
                           </div>
-                          <div className="text-[11px] text-slate-500 font-semibold">{prod.brand}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Lab Metric */}
-                    <td className="py-4 px-4 align-middle font-medium text-slate-700 max-w-xs">
-                      <div className="flex items-start gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="leading-snug text-xs">{win.testedMetric}</span>
-                      </div>
-                    </td>
-
-                    {/* Rating */}
-                    <td className="py-4 px-4 align-middle text-center">
-                      <div className="inline-flex items-center gap-1 font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-md border border-slate-200">
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        <span className="font-mono tabular-nums">{prod.rating}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                        {prod.reviewCount.toLocaleString()} reviews
-                      </div>
-                    </td>
-
-                    {/* Price */}
-                    <td className="py-4 px-4 align-middle">
-                      <div className="space-y-0.5">
-                        <div className="font-mono font-extrabold text-slate-950 text-sm tabular-nums">
-                          {formatCurrency(prod.dealPrice)}
-                        </div>
-                        {discount > 0 && (
-                          <div className="text-[10px] text-emerald-600 font-bold">
-                            Save {discount}% on Amazon
+                          <div className="max-w-xs space-y-0.5">
+                            <div className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-1">
+                              {prod.title}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-semibold">{prod.brand}</div>
                           </div>
-                        )}
-                      </div>
-                    </td>
+                        </div>
+                      </td>
 
-                    {/* Buy on Amazon CTA */}
-                    <td className="py-4 px-4 align-middle text-right">
-                      <button
-                        onClick={(e) => onBuyNow(prod, e)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <span>Buy on Amazon</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {/* Lab Metric */}
+                      <td className="py-4 px-4 align-middle font-medium text-slate-700 max-w-xs">
+                        <div className="flex items-start gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                          <span className="leading-snug text-xs">{win.testedMetric}</span>
+                        </div>
+                      </td>
+
+                      {/* Rating */}
+                      <td className="py-4 px-4 align-middle text-center">
+                        <div className="inline-flex items-center gap-1 font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-md border border-slate-200">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          <span className="font-mono tabular-nums">{prod.rating}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                          {prod.reviewCount.toLocaleString()} reviews
+                        </div>
+                      </td>
+
+                      {/* Price */}
+                      <td className="py-4 px-4 align-middle">
+                        <div className="space-y-0.5">
+                          <div className="font-mono font-extrabold text-slate-950 text-sm tabular-nums">
+                            {formatCurrency(prod.dealPrice)}
+                          </div>
+                          {discount > 0 && (
+                            <div className="text-[10px] text-emerald-600 font-bold">
+                              Save {discount}% on Amazon
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Buy on Amazon CTA */}
+                      <td className="py-4 px-4 align-middle text-right">
+                        <button
+                          onClick={(e) => onBuyNow(prod, e)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                          <span>Buy on Amazon</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
       </div>
 
       {/* Section 2: US Testing Methodology & Transparency */}

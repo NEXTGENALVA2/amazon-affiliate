@@ -11,15 +11,21 @@ import {
   PixelEventLog,
 } from '../types';
 import { hasSupabase, supabase } from './supabase';
+import monitorImg from '../assets/images/curved_gaming_monitor_1793432526940.jpg';
+import headphonesImg from '../assets/images/wireless_anc_headphones_1793432526819.jpg';
+import keyboardImg from '../assets/images/mechanical_keyboard_1793432527212.jpg';
+import chairImg from '../assets/images/ergonomic_smart_chair_1793432527087.jpg';
+import catFoodImg from '../assets/images/premium_cat_food_1793635553336.jpg';
+import gymProteinImg from '../assets/images/gym_whey_protein_1793635553376.jpg';
+import airFryerImg from '../assets/images/smart_air_fryer_1793635553057.jpg';
 
-// Image paths from asset generation
-const MONITOR_IMG = '/src/assets/images/curved_gaming_monitor_1793432526940.jpg';
-const HEADPHONES_IMG = '/src/assets/images/wireless_anc_headphones_1793432526819.jpg';
-const KEYBOARD_IMG = '/src/assets/images/mechanical_keyboard_1793432527212.jpg';
-const CHAIR_IMG = '/src/assets/images/ergonomic_smart_chair_1793432527087.jpg';
-const CAT_FOOD_IMG = '/src/assets/images/premium_cat_food_1793635553336.jpg';
-const GYM_PROTEIN_IMG = '/src/assets/images/gym_whey_protein_1793635553376.jpg';
-const AIR_FRYER_IMG = '/src/assets/images/smart_air_fryer_1793635553057.jpg';
+const MONITOR_IMG = monitorImg;
+const HEADPHONES_IMG = headphonesImg;
+const KEYBOARD_IMG = keyboardImg;
+const CHAIR_IMG = chairImg;
+const CAT_FOOD_IMG = catFoodImg;
+const GYM_PROTEIN_IMG = gymProteinImg;
+const AIR_FRYER_IMG = airFryerImg;
 
 const STORAGE_KEYS = {
   PRODUCTS: 'auragear_products_v2',
@@ -635,35 +641,6 @@ class StoreService {
     }
   }
 
-  private async hydrateProductsFromSupabase(): Promise<boolean> {
-    if (!hasSupabase || !supabase) return false;
-
-    try {
-      const { data, error } = await supabase.from('products').select('payload').order('updated_at', { ascending: false });
-      if (error || !data || data.length === 0) return false;
-
-      const loadedProducts = data
-        .map((row) => row.payload)
-        .filter(Boolean)
-        .flatMap((payload: any) => Array.isArray(payload) ? payload : [payload]);
-
-      if (loadedProducts.length > 0) {
-        this.products = loadedProducts.map((p) => ({
-          ...p,
-          category: p.category || 'Cat Food & Pet Care',
-          gallery: p.gallery && p.gallery.length ? p.gallery : [p.image],
-          variants: p.variants && Array.isArray(p.variants) ? p.variants : [],
-        }));
-        this.saveProducts();
-        return true;
-      }
-    } catch (error) {
-      console.warn('Supabase product sync failed', error);
-    }
-
-    return false;
-  }
-
   private init() {
     try {
       const savedProds = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
@@ -702,7 +679,7 @@ class StoreService {
         this.products = INITIAL_PRODUCTS;
       }
 
-      this.saveProducts();
+      this.saveProducts(false);
 
       // Clicks & Visitors
       const savedClicks = localStorage.getItem(STORAGE_KEYS.CLICKS);
@@ -743,18 +720,37 @@ class StoreService {
     if (!hasSupabase || !supabase) return;
 
     try {
-      const { data, error } = await supabase.from('products').select('payload').limit(1);
-      if (error && error.code !== '42P01') {
+      const { data, error } = await supabase
+        .from('products')
+        .select('payload')
+        .order('updated_at', { ascending: false });
+      if (error) {
         console.warn('Supabase products table check failed', error);
         return;
       }
 
-      if (!data || data.length === 0) {
-        const payload = this.products;
-        const { error: insertError } = await supabase.from('products').insert({ id: 'default', payload, updated_at: new Date().toISOString() });
-        if (insertError) {
-          console.warn('Supabase seed insert failed', insertError);
-        }
+      const loadedProducts = (data || [])
+        .map((row) => row.payload)
+        .filter(Boolean)
+        .flatMap((payload) => Array.isArray(payload) ? payload : [payload]);
+
+      if (loadedProducts.length > 0) {
+        this.products = loadedProducts.map((p) => ({
+          ...p,
+          category: p.category || 'Cat Food & Pet Care',
+          gallery: p.gallery && p.gallery.length ? p.gallery : [p.image],
+          variants: p.variants && Array.isArray(p.variants) ? p.variants : [],
+        }));
+        this.saveProducts(false);
+        this.notify();
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from('products')
+        .upsert({ id: 'default', payload: this.products, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+      if (insertError) {
+        console.warn('Supabase seed insert failed', insertError);
       }
     } catch (error) {
       console.warn('Supabase connection check failed', error);
@@ -1361,13 +1357,13 @@ class StoreService {
     })();
   }
 
-  private saveProducts() {
+  private saveProducts(persistToCloud = true) {
     try {
       localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(this.products));
     } catch (e) {
       console.warn('LocalStorage save failed', e);
     }
-    this.persistProductsToSupabase();
+    if (persistToCloud) this.persistProductsToSupabase();
   }
 
   private saveClicks() {

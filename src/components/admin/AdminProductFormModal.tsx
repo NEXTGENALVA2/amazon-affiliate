@@ -19,6 +19,13 @@ import {
 import { Product, ProductVariant } from '../../types';
 import { getYouTubeEmbedUrl, formatAmazonAffiliateUrl } from '../../utils/helpers';
 import { uploadImageToSupabase, uploadVideoToSupabase } from '../../services/storage';
+import premiumCatFood from '../../assets/images/premium_cat_food_1793635553336.jpg';
+import gymWheyProtein from '../../assets/images/gym_whey_protein_1793635553376.jpg';
+import smartAirFryer from '../../assets/images/smart_air_fryer_1793635553057.jpg';
+import curvedMonitor from '../../assets/images/curved_gaming_monitor_1793432526940.jpg';
+import ancHeadphones from '../../assets/images/wireless_anc_headphones_1793432526819.jpg';
+import mechanicalKeyboard from '../../assets/images/mechanical_keyboard_1793432527212.jpg';
+import ergonomicChair from '../../assets/images/ergonomic_smart_chair_1793432527087.jpg';
 
 interface AdminProductFormModalProps {
   isOpen: boolean;
@@ -28,13 +35,13 @@ interface AdminProductFormModalProps {
 }
 
 const PRESET_IMAGES = [
-  { label: 'Organic Salmon Cat Food', url: '/src/assets/images/premium_cat_food_1793635553336.jpg' },
-  { label: 'Whey Protein Isolate Gym', url: '/src/assets/images/gym_whey_protein_1793635553376.jpg' },
-  { label: 'Smart Dual Air Fryer', url: '/src/assets/images/smart_air_fryer_1793635553057.jpg' },
-  { label: 'Curved Gaming Monitor', url: '/src/assets/images/curved_gaming_monitor_1793432526940.jpg' },
-  { label: 'ANC Wireless Headphones', url: '/src/assets/images/wireless_anc_headphones_1793432526819.jpg' },
-  { label: 'Custom Mechanical Keyboard', url: '/src/assets/images/mechanical_keyboard_1793432527212.jpg' },
-  { label: 'Ergonomic Mesh Chair', url: '/src/assets/images/ergonomic_smart_chair_1793432527087.jpg' },
+  { label: 'Organic Salmon Cat Food', url: premiumCatFood },
+  { label: 'Whey Protein Isolate Gym', url: gymWheyProtein },
+  { label: 'Smart Dual Air Fryer', url: smartAirFryer },
+  { label: 'Curved Gaming Monitor', url: curvedMonitor },
+  { label: 'ANC Wireless Headphones', url: ancHeadphones },
+  { label: 'Custom Mechanical Keyboard', url: mechanicalKeyboard },
+  { label: 'Ergonomic Mesh Chair', url: ergonomicChair },
 ];
 
 export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
