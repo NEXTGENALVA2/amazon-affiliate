@@ -3,14 +3,10 @@ import {
   ExternalLink,
   ArrowLeft,
   ShieldCheck,
-  Video,
   Play,
   Sparkles,
   ArrowRight,
   MessageCircle,
-  Instagram,
-  Facebook,
-  Twitter,
   CheckCircle,
   HelpCircle,
   AlertCircle,
@@ -21,6 +17,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Product } from './types';
+import { getSocialPlatform, SocialPlatformIcon } from './components/SocialPlatformIcon';
 import { store } from './services/store';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -134,8 +131,7 @@ export default function App() {
           label: 'WhatsApp',
           description: 'Direct Chat',
           url: store.getSocialUrl('whatsapp'),
-          icon: <MessageCircle className="w-5 h-5" />,
-          iconClass: 'bg-emerald-500/20 text-emerald-400',
+          platform: 'whatsapp' as const,
         }]
       : []),
     ...(socialSettings.visibleChannels.includes('instagram')
@@ -144,8 +140,7 @@ export default function App() {
           label: 'Instagram',
           description: 'Direct DM',
           url: store.getSocialUrl('instagram'),
-          icon: <Instagram className="w-5 h-5" />,
-          iconClass: 'bg-pink-500/20 text-pink-400',
+          platform: 'instagram' as const,
         }]
       : []),
     ...(socialSettings.visibleChannels.includes('facebook')
@@ -154,8 +149,7 @@ export default function App() {
           label: 'Messenger',
           description: 'Facebook Page',
           url: store.getSocialUrl('facebook'),
-          icon: <Facebook className="w-5 h-5" />,
-          iconClass: 'bg-blue-500/20 text-blue-400',
+          platform: 'facebook' as const,
         }]
       : []),
     ...(socialSettings.visibleChannels.includes('tiktok')
@@ -164,8 +158,7 @@ export default function App() {
           label: 'TikTok',
           description: 'Videos & Chat',
           url: store.getSocialUrl('tiktok'),
-          icon: <Video className="w-5 h-5" />,
-          iconClass: 'bg-slate-700 text-white',
+          platform: 'tiktok' as const,
         }]
       : []),
     ...(socialSettings.visibleChannels.includes('twitter')
@@ -174,8 +167,7 @@ export default function App() {
           label: 'Twitter / X',
           description: 'Instant DMs',
           url: store.getSocialUrl('twitter'),
-          icon: <Twitter className="w-5 h-5" />,
-          iconClass: 'bg-sky-500/20 text-sky-400',
+          platform: 'twitter' as const,
         }]
       : []),
     ...socialSettings.customLinks
@@ -185,8 +177,7 @@ export default function App() {
         label: link.label,
         description: 'Visit our profile',
         url: link.url,
-        icon: <ExternalLink className="w-5 h-5" />,
-        iconClass: 'bg-white/10 text-slate-200',
+        platform: getSocialPlatform(link.id, link.label, link.url),
       })),
   ];
 
@@ -525,6 +516,27 @@ export default function App() {
         onGoHome={handleGoHome}
         onScrollToSection={handleScrollTo}
       />
+
+      {activeSearchQuery === null && socialHubLinks.length > 0 && (
+        <nav aria-label="Our social media" className="border-b border-slate-200 bg-white px-3 py-2 sm:px-6">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-2 sm:gap-3">
+            {socialHubLinks.map((link) => (
+              <a
+                key={`top-${link.id}`}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Visit our ${link.label} profile`}
+                title={link.label}
+                className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-amber-400 hover:bg-amber-50 sm:gap-2 sm:px-3"
+              >
+                <SocialPlatformIcon platform={link.platform} className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+                <span className="max-w-24 truncate sm:max-w-none">{link.label}</span>
+              </a>
+            ))}
+          </div>
+        </nav>
+      )}
 
       <ProductSearchBar
         query={searchQuery}
@@ -987,7 +999,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             <button
               onClick={() => setIsChatOpen(true)}
               className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all cursor-pointer"
@@ -1006,8 +1018,8 @@ export default function App() {
                 rel="noopener noreferrer"
                 className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all"
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${link.iconClass}`}>
-                  {link.icon}
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+                  <SocialPlatformIcon platform={link.platform} className="h-6 w-6" />
                 </div>
                 <span className="text-xs font-bold">{link.label}</span>
                 <span className="text-[10px] text-slate-400">{link.description}</span>

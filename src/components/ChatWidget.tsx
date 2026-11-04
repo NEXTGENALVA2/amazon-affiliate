@@ -6,18 +6,13 @@ import {
   ImagePlus,
   Mic,
   Phone,
-  ExternalLink,
-  MessageCircle,
-  Instagram,
-  Facebook,
-  Twitter,
-  Video,
   Minimize2,
 } from 'lucide-react';
 import { Product, SocialChannel, ChatMessage, ChatAttachment } from '../types';
 import { store } from '../services/store';
 import { getChatVisitorId, getVisitorConversation, sendCustomerChatMessage } from '../services/chat';
 import { uploadChatAttachment } from '../services/storage';
+import { getSocialPlatform, SocialPlatformIcon } from './SocialPlatformIcon';
 
 interface ChatWidgetProps {
   initialProduct?: Product | null;
@@ -253,14 +248,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     channel: Exclude<SocialChannel, 'website'>;
     title: string;
     label: string;
-    icon: React.ReactNode;
+    platform: ReturnType<typeof getSocialPlatform>;
     className: string;
   }[] = [
-    { channel: 'whatsapp', title: 'Connect on WhatsApp', label: 'WA', icon: <MessageCircle className="w-3.5 h-3.5" />, className: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' },
-    { channel: 'instagram', title: 'Message on Instagram', label: 'Insta', icon: <Instagram className="w-3.5 h-3.5" />, className: 'bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200' },
-    { channel: 'facebook', title: 'Connect on Messenger', label: 'FB', icon: <Facebook className="w-3.5 h-3.5" />, className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' },
-    { channel: 'tiktok', title: 'Message on TikTok', label: 'TikTok', icon: <Video className="w-3.5 h-3.5" />, className: 'bg-slate-100 text-slate-900 hover:bg-slate-200 border-slate-300' },
-    { channel: 'twitter', title: 'Message on Twitter / X', label: 'X', icon: <Twitter className="w-3.5 h-3.5" />, className: 'bg-sky-50 text-sky-700 hover:bg-sky-100 border-sky-200' },
+    { channel: 'whatsapp', title: 'Connect on WhatsApp', label: 'WA', platform: 'whatsapp', className: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' },
+    { channel: 'instagram', title: 'Message on Instagram', label: 'Insta', platform: 'instagram', className: 'bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200' },
+    { channel: 'facebook', title: 'Connect on Messenger', label: 'FB', platform: 'facebook', className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200' },
+    { channel: 'tiktok', title: 'Message on TikTok', label: 'TikTok', platform: 'tiktok', className: 'bg-slate-100 text-slate-900 hover:bg-slate-200 border-slate-300' },
+    { channel: 'twitter', title: 'Message on Twitter / X', label: 'X', platform: 'twitter', className: 'bg-sky-50 text-sky-700 hover:bg-sky-100 border-sky-200' },
   ];
   const channelButtons = availableChannelButtons
     .filter(({ channel }) => socialSettings.visibleChannels.includes(channel));
@@ -330,14 +325,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                 <span className="text-[9px] mt-0.5">Site</span>
               </button>
 
-              {channelButtons.map(({ channel, title, label, icon, className }) => (
+              {channelButtons.map(({ channel, title, label, platform, className }) => (
                 <button
                   key={channel}
                   onClick={() => openSocialChannel(channel)}
                   title={title}
                   className={`flex min-w-12 flex-col items-center justify-center py-1.5 rounded-lg border text-[10px] font-medium transition-colors ${className}`}
                 >
-                  {icon}
+                  <SocialPlatformIcon platform={platform} className="h-3.5 w-3.5" />
                   <span className="mt-0.5 text-[9px]">{label}</span>
                 </button>
               ))}
@@ -350,7 +345,10 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
                   title={`Open ${link.label}`}
                   className="flex min-w-12 flex-col items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-medium text-slate-700 hover:bg-slate-100"
                 >
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  <SocialPlatformIcon
+                    platform={getSocialPlatform(link.id, link.label, link.url)}
+                    className="h-3.5 w-3.5"
+                  />
                   <span className="mt-0.5 max-w-16 truncate text-[9px]">{link.label}</span>
                 </a>
               ))}
@@ -500,20 +498,21 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
         </div>
       )}
 
-      {/* Floating Launcher Button */}
-      <button
-        onClick={onToggle}
-        className="flex items-center gap-2 px-4 py-3 bg-slate-950 hover:bg-slate-800 text-white rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 cursor-pointer group"
-        aria-label="Open customer support and social chat"
-      >
-        <div className="relative">
-          <MessageSquare className="w-5 h-5 text-amber-400" />
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950" />
-        </div>
-        <span className="text-xs font-bold tracking-wide">
-          {socialSettings.visibleChannels.includes('whatsapp') ? 'Live Chat & WhatsApp' : 'Live Chat'}
-        </span>
-      </button>
+      {socialSettings.chatHeaderVisible && (
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 px-4 py-3 bg-slate-950 hover:bg-slate-800 text-white rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 cursor-pointer group"
+          aria-label="Open customer support and social chat"
+        >
+          <div className="relative">
+            <MessageSquare className="w-5 h-5 text-amber-400" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950" />
+          </div>
+          <span className="text-xs font-bold tracking-wide">
+            {socialSettings.visibleChannels.includes('whatsapp') ? 'Live Chat & WhatsApp' : 'Live Chat'}
+          </span>
+        </button>
+      )}
     </div>
   );
 };

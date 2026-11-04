@@ -38,7 +38,7 @@ Customer messages are stored in Supabase and the admin inbox refreshes every fiv
 
 The same schema file also creates the private `storefront_settings` table used for social links and chat-header visibility. If you already ran an earlier version of the schema, run the current file again after deploying to add this table. Admins can then manage header visibility, built-in channel buttons, and up to eight custom profile links from **Admin → Social Accounts**. Settings are read publicly by the storefront and can only be changed from the authenticated admin session.
 
-The regular Vite dev server does not run Vercel functions. To test the API locally, configure the environment and use the Vercel CLI (`vercel dev`).
+The Vite dev server provides local handlers for `/api/chat` and `/api/site-settings`, so `npm run dev` also supports admin sign-in. Add `CHAT_ADMIN_USERNAME`, `CHAT_ADMIN_PASSWORD`, and a random `CHAT_SESSION_SECRET` (at least 32 characters) to `.env.local`. Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` there as well to test chat and social-settings persistence; keep the service-role key server-only. You can also use `vercel dev` to run the project with Vercel's local runtime.
 
 ## Product URLs and SEO
 

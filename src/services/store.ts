@@ -1237,6 +1237,8 @@ class StoreService {
   public async updateSocialSettings(settings: Partial<import('../types').SocialSettings>) {
     const current = this.getSocialSettings();
     const updated = { ...current, ...settings };
+    this.saveSocialSettingsLocally(updated);
+    this.notify();
     const saved = await savePublicSocialSettings(updated);
     this.saveSocialSettingsLocally(saved);
     this.notify();

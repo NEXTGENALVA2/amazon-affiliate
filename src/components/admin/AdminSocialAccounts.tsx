@@ -104,7 +104,9 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (error) {
-      setSettingsError(error instanceof Error ? error.message : 'Could not save social settings.');
+      const message = error instanceof Error ? error.message : 'Could not save social settings.';
+      setSettings(store.getSocialSettings());
+      setSettingsError(`Saved on this browser, but could not sync to the server: ${message}`);
     } finally {
       setIsSavingSocialSettings(false);
     }
@@ -139,7 +141,8 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (error) {
-      setSettingsError(error instanceof Error ? error.message : 'Could not update site visibility.');
+      const message = error instanceof Error ? error.message : 'Could not update site visibility.';
+      setSettingsError(`Updated on this browser, but could not sync to the server: ${message}`);
       const current = store.getSocialSettings();
       setSettings((draft) => ({
         ...draft,
