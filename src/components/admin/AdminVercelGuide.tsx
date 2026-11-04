@@ -4,14 +4,9 @@ import {
   CheckCircle,
   Copy,
   Download,
-  Upload,
   KeyRound,
-  Shield,
-  Layers,
-  Terminal,
 } from 'lucide-react';
 import { store } from '../../services/store';
-import { getAdminConversations } from '../../services/chat';
 
 export const AdminVercelGuide: React.FC = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -23,21 +18,10 @@ export const AdminVercelGuide: React.FC = () => {
   };
 
   const handleExportDataBackup = async () => {
-    let remoteConversations;
-    try {
-      remoteConversations = await getAdminConversations();
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'Could not load chat backup.');
-      return;
-    }
     const backup = {
       products: store.getProducts(),
-      conversations: [
-        ...store.getConversations().filter((conversation) => conversation.channel !== 'website'),
-        ...remoteConversations,
-      ],
       exportedAt: new Date().toISOString(),
-      app: 'AuraGear Amazon Showcase',
+      app: 'Kefayaan Amazon Affiliate Store',
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -118,21 +102,20 @@ export const AdminVercelGuide: React.FC = () => {
         </div>
       </div>
 
-      {/* Server-side chat and admin configuration */}
+      {/* Server-side authentication and social settings configuration */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
         <div className="flex items-center gap-2">
           <KeyRound className="w-5 h-5 text-amber-500" />
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Secure Chat &amp; Admin Setup</h3>
-            <p className="text-xs text-slate-500">Run the chat schema once in Supabase SQL Editor, then add these server-only variables in Vercel.</p>
+            <h3 className="text-sm font-bold text-slate-900">Admin Login &amp; Social Links Setup</h3>
+            <p className="text-xs text-slate-500">Configure admin credentials and Supabase-backed social links in Vercel.</p>
           </div>
         </div>
 
         <ol className="list-decimal pl-5 text-xs text-slate-600 space-y-1.5">
-          <li>Run the latest <code className="rounded bg-slate-100 px-1">supabase/chat-schema.sql</code> in your Supabase project (run it again after updates to create new settings tables).</li>
-          <li>Set <code className="rounded bg-slate-100 px-1">SUPABASE_URL</code> and the server-only <code className="rounded bg-slate-100 px-1">SUPABASE_SERVICE_ROLE_KEY</code>.</li>
-          <li>Set <code className="rounded bg-slate-100 px-1">CHAT_ADMIN_USERNAME</code>, <code className="rounded bg-slate-100 px-1">CHAT_ADMIN_PASSWORD</code>, and a random <code className="rounded bg-slate-100 px-1">CHAT_SESSION_SECRET</code> (32+ characters).</li>
-          <li>Redeploy after adding the variables. Do not put the service-role key in any <code className="rounded bg-slate-100 px-1">VITE_*</code> variable.</li>
+          <li>Set <code className="rounded bg-slate-100 px-1">ADMIN_USERNAME</code>, <code className="rounded bg-slate-100 px-1">ADMIN_PASSWORD</code>, and a random <code className="rounded bg-slate-100 px-1">ADMIN_SESSION_SECRET</code> (32+ characters).</li>
+          <li>For social links to sync across devices, run <code className="rounded bg-slate-100 px-1">supabase/site-settings.sql</code> in Supabase and set <code className="rounded bg-slate-100 px-1">SUPABASE_URL</code> and the server-only <code className="rounded bg-slate-100 px-1">SUPABASE_SERVICE_ROLE_KEY</code>.</li>
+          <li>Redeploy after adding the variables. Never put the service-role key in a <code className="rounded bg-slate-100 px-1">VITE_*</code> variable.</li>
         </ol>
       </div>
 
@@ -141,7 +124,7 @@ export const AdminVercelGuide: React.FC = () => {
         <div className="space-y-1">
           <h3 className="text-sm font-bold text-slate-900">Storefront Data Backup (JSON)</h3>
           <p className="text-xs text-slate-500">
-            Export all products, video reviews, Amazon affiliate tags, and customer chats to a local JSON file.
+            Export products, video reviews, and Amazon affiliate tags to a local JSON file.
           </p>
         </div>
 

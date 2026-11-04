@@ -113,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onOpenSocialHub}
             className="hover:text-slate-950 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            Social Concierge
+            Social Media
           </button>
         </nav>
 
@@ -219,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
               >
-                💬 Social Concierge &amp; Live Chat
+                Social Media
               </button>
             </div>
 

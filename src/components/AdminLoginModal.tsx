@@ -44,7 +44,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-bold text-slate-900">Admin Authentication</h3>
-              <p className="text-[11px] text-slate-500">Log in to manage products, analytics &amp; chats</p>
+              <p className="text-[11px] text-slate-500">Log in to manage products, analytics &amp; social links</p>
             </div>
           </div>
           <button

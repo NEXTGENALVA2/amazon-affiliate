@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Package,
   BarChart3,
-  MessageSquare,
   Globe,
   LogOut,
   Settings,
@@ -16,48 +15,32 @@ import { store } from '../../services/store';
 import { AdminOverview } from './AdminOverview';
 import { AdminProducts } from './AdminProducts';
 import { AdminAnalytics } from './AdminAnalytics';
-import { AdminSocialInbox } from './AdminSocialInbox';
 import { AdminSocialAccounts } from './AdminSocialAccounts';
 import { AdminVercelGuide } from './AdminVercelGuide';
 import { AdminProductFormModal } from './AdminProductFormModal';
 import { AdminPixelTracking } from './AdminPixelTracking';
-import { getAdminUnreadCount } from '../../services/chat';
 
 interface AdminLayoutProps {
   onBackToStore: () => void;
   onLogout: () => void;
 }
 
-export type AdminTab = 'overview' | 'products' | 'analytics' | 'inbox' | 'socials' | 'pixels' | 'vercel';
+export type AdminTab = 'overview' | 'products' | 'analytics' | 'socials' | 'pixels' | 'vercel';
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogout }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [products, setProducts] = useState<Product[]>([]);
-  const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
 
   const loadData = () => {
     setProducts(store.getProducts());
-    const socialUnread = store.getConversations()
-      .filter((conversation) => conversation.channel !== 'website')
-      .reduce((total, conversation) => total + conversation.unreadCount, 0);
-    void getAdminUnreadCount()
-      .then(({ unreadCount }) => {
-        setUnreadMessages(socialUnread + unreadCount);
-      })
-      .catch((error: unknown) => {
-        console.error('Could not load unread chat count', error);
-        setUnreadMessages(socialUnread);
-      });
   };
 
   useEffect(() => {
     loadData();
     const unsub = store.subscribe(loadData);
-    const intervalId = window.setInterval(loadData, 5000);
     return () => {
       unsub();
-      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -165,25 +148,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
             </button>
 
             <button
-              onClick={() => setActiveTab('inbox')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
-                activeTab === 'inbox'
-                  ? 'bg-amber-400 text-slate-950 shadow-xs font-bold'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Social Inbox</span>
-              {unreadMessages > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  activeTab === 'inbox' ? 'bg-slate-950 text-amber-400' : 'bg-amber-400 text-slate-950'
-                }`}>
-                  {unreadMessages}
-                </span>
-              )}
-            </button>
-
-            <button
               onClick={() => setActiveTab('socials')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
                 activeTab === 'socials'
@@ -238,11 +202,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
 
         {activeTab === 'analytics' && <AdminAnalytics />}
 
-        {activeTab === 'inbox' && <AdminSocialInbox />}
-
-        {activeTab === 'socials' && (
-          <AdminSocialAccounts onNavigateToInbox={() => setActiveTab('inbox')} />
-        )}
+        {activeTab === 'socials' && <AdminSocialAccounts />}
 
         {activeTab === 'pixels' && <AdminPixelTracking />}
 

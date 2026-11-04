@@ -6,7 +6,6 @@ import {
   Play,
   Sparkles,
   ArrowRight,
-  MessageCircle,
   CheckCircle,
   HelpCircle,
   AlertCircle,
@@ -24,7 +23,6 @@ import { Hero } from './components/Hero';
 import { ProductCard } from './components/ProductCard';
 import { ProductSearchBar } from './components/ProductSearchBar';
 import { ProductDetailModal } from './components/ProductDetailModal';
-import { ChatWidget } from './components/ChatWidget';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { BuyerComparisonTable } from './components/BuyerComparisonTable';
@@ -77,10 +75,8 @@ export default function App() {
   const [activeSearchQuery, setActiveSearchQuery] = useState<string | null>(initialSearchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
   
-  // Modals & Chat
+  // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatInitialProduct, setChatInitialProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // US Amazon Retail Categories
@@ -129,7 +125,7 @@ export default function App() {
       ? [{
           id: 'whatsapp',
           label: 'WhatsApp',
-          description: 'Direct Chat',
+          description: 'Direct Contact',
           url: store.getSocialUrl('whatsapp'),
           platform: 'whatsapp' as const,
         }]
@@ -138,7 +134,7 @@ export default function App() {
       ? [{
           id: 'instagram',
           label: 'Instagram',
-          description: 'Direct DM',
+          description: 'Visit Profile',
           url: store.getSocialUrl('instagram'),
           platform: 'instagram' as const,
         }]
@@ -147,7 +143,7 @@ export default function App() {
       ? [{
           id: 'facebook',
           label: 'Messenger',
-          description: 'Facebook Page',
+          description: 'Visit Facebook Page',
           url: store.getSocialUrl('facebook'),
           platform: 'facebook' as const,
         }]
@@ -156,7 +152,7 @@ export default function App() {
       ? [{
           id: 'tiktok',
           label: 'TikTok',
-          description: 'Videos & Chat',
+          description: 'Videos & Profile',
           url: store.getSocialUrl('tiktok'),
           platform: 'tiktok' as const,
         }]
@@ -165,7 +161,7 @@ export default function App() {
       ? [{
           id: 'twitter',
           label: 'Twitter / X',
-          description: 'Instant DMs',
+          description: 'Visit X Profile',
           url: store.getSocialUrl('twitter'),
           platform: 'twitter' as const,
         }]
@@ -384,9 +380,9 @@ export default function App() {
     handleGoHome();
   };
 
-  const handleOpenChatWithProduct = (product: Product) => {
-    setChatInitialProduct(product);
-    setIsChatOpen(true);
+  const handleOpenSocialHub = () => {
+    setSelectedProduct(null);
+    handleScrollTo('social-concierge');
   };
 
   const handleScrollTo = (id: string) => {
@@ -440,7 +436,7 @@ export default function App() {
           isAdminLoggedIn={isAdminLoggedIn}
           onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
           onGoToAdmin={() => setCurrentView('admin')}
-          onOpenSocialHub={() => setIsChatOpen(true)}
+          onOpenSocialHub={handleOpenSocialHub}
           onGoHome={handleGoHome}
           onScrollToSection={handleScrollTo}
         />
@@ -459,7 +455,7 @@ export default function App() {
             isPage
             onClose={handleCloseProductPage}
             onBuyNow={(prod, customUrl) => handleBuyNow(prod, undefined, customUrl)}
-            onOpenChatWithProduct={handleOpenChatWithProduct}
+            onOpenSocialLinks={handleOpenSocialHub}
           />
         ) : (
           <main className="flex-1 flex items-center justify-center px-6 py-20 text-center">
@@ -479,12 +475,6 @@ export default function App() {
         <footer className="border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-500">
           Kefayaan participates in the Amazon Associates program and may earn from qualifying purchases.
         </footer>
-        <ChatWidget
-          isOpen={isChatOpen}
-          onToggle={() => setIsChatOpen(!isChatOpen)}
-          initialProduct={chatInitialProduct}
-          onClearInitialProduct={() => setChatInitialProduct(null)}
-        />
         <AdminLoginModal
           isOpen={isAdminLoginModalOpen}
           onClose={() => setIsAdminLoginModalOpen(false)}
@@ -512,7 +502,7 @@ export default function App() {
         isAdminLoggedIn={isAdminLoggedIn}
         onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
         onGoToAdmin={() => setCurrentView('admin')}
-        onOpenSocialHub={() => setIsChatOpen(true)}
+        onOpenSocialHub={handleOpenSocialHub}
         onGoHome={handleGoHome}
         onScrollToSection={handleScrollTo}
       />
@@ -986,7 +976,7 @@ export default function App() {
         )}
 
         {/* Section 5: OmniChannel Social Concierge & Customer Inquiries */}
-        <section className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 lg:p-12 border border-slate-800 space-y-6">
+        <section id="social-concierge" className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 lg:p-12 border border-slate-800 space-y-6">
           <div className="max-w-2xl space-y-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
               OmniChannel US Concierge
@@ -995,21 +985,11 @@ export default function App() {
               Have Questions About a Product or Deal? Ask Us Anywhere.
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
-              Message us through your preferred platform or contact us directly through the website live chat.
+              Connect with us through your preferred social platform.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            <button
-              onClick={() => setIsChatOpen(true)}
-              className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2 transition-all cursor-pointer"
-            >
-              <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center">
-                <MessageCircle className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold">Website Chat</span>
-              <span className="text-[10px] text-slate-400">Live on page</span>
-            </button>
             {socialHubLinks.map((link) => (
               <a
                 key={link.id}
@@ -1124,17 +1104,9 @@ export default function App() {
         product={selectedProduct}
         onClose={handleCloseProductPage}
         onBuyNow={(prod, customUrl) => handleBuyNow(prod, undefined, customUrl)}
-        onOpenChatWithProduct={handleOpenChatWithProduct}
+        onOpenSocialLinks={handleOpenSocialHub}
       />
 
-
-      {/* OmniChannel Customer Chat Widget */}
-      <ChatWidget
-        isOpen={isChatOpen}
-        onToggle={() => setIsChatOpen(!isChatOpen)}
-        initialProduct={chatInitialProduct}
-        onClearInitialProduct={() => setChatInitialProduct(null)}
-      />
 
       {/* Admin Login Modal */}
       <AdminLoginModal

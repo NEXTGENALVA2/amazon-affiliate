@@ -2,12 +2,9 @@ import React from 'react';
 import {
   Users,
   MousePointerClick,
-  TrendingUp,
-  MessageSquare,
   Plus,
   ArrowRight,
   ExternalLink,
-  ShieldCheck,
   CheckCircle,
 } from 'lucide-react';
 import { Product } from '../../types';
@@ -16,7 +13,7 @@ import { formatCurrency } from '../../utils/helpers';
 
 interface AdminOverviewProps {
   products: Product[];
-  onNavigate: (tab: 'overview' | 'products' | 'analytics' | 'inbox' | 'socials' | 'vercel') => void;
+  onNavigate: (tab: 'overview' | 'products' | 'analytics' | 'socials' | 'pixels' | 'vercel') => void;
   onOpenAddProduct: () => void;
 }
 
@@ -27,8 +24,6 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 }) => {
   const todayAnalytics = store.getAnalytics('today');
   const monthAnalytics = store.getAnalytics('this_month');
-  const conversations = store.getConversations();
-  const unreadCount = conversations.reduce((acc, c) => acc + c.unreadCount, 0);
 
   return (
     <div className="space-y-6">
@@ -42,7 +37,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             Kefayaan Control Center
           </h2>
           <p className="text-slate-300 text-xs sm:text-sm max-w-xl">
-            Live visitor analytics, outbound Amazon Buy Now click tracking, Meta/TikTok/Google ad pixel conversions, and unified customer inquiries.
+            Live visitor analytics, outbound Amazon Buy Now click tracking, and Meta/TikTok/Google ad pixel conversions.
           </p>
         </div>
 
@@ -64,7 +59,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Today's Visitors */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-1">
           <div className="flex items-center justify-between text-slate-500">
@@ -107,25 +102,12 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           </div>
         </div>
 
-        {/* Unread Social Messages */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-1">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Social Inquiries</span>
-            <MessageSquare className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono tabular-nums">
-            {unreadCount} New
-          </div>
-          <div className="text-[11px] text-slate-500">
-            WhatsApp, Insta, FB, TikTok, Twitter
-          </div>
-        </div>
       </div>
 
       {/* Two Column Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Left Column: Quick Product Management */}
-        <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Active Amazon Products</h3>
             <button
@@ -177,49 +159,6 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Recent Social Inquiries & Direct Reply */}
-        <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 space-y-4 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-slate-900">Recent Customer Inquiries</h3>
-              <button
-                onClick={() => onNavigate('inbox')}
-                className="text-xs font-semibold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer"
-              >
-                <span>Open Inbox</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {conversations.slice(0, 3).map((conv) => (
-                <div
-                  key={conv.id}
-                  onClick={() => onNavigate('inbox')}
-                  className="p-3 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 cursor-pointer transition-colors space-y-1"
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-900">{conv.customerName}</span>
-                    <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">
-                      {conv.channel}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 line-clamp-1">{conv.lastMessage}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Direct reply supported from website</span>
-            <button
-              onClick={() => onNavigate('inbox')}
-              className="text-xs font-bold text-slate-950 underline hover:text-amber-600 cursor-pointer"
-            >
-              Reply to All
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

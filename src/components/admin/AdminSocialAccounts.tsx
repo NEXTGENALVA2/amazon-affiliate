@@ -1,688 +1,256 @@
-import React, { useState, useEffect } from 'react';
-import {
-  MessageCircle,
-  Instagram,
-  Facebook,
-  Twitter,
-  Video,
-  CheckCircle2,
-  ExternalLink,
-  Save,
-  Link2,
-  ShieldCheck,
-  Webhook,
-  HelpCircle,
-  Copy,
-  Info,
-  Radio,
-  Send,
-  ArrowRight,
-  Bell,
-  Code,
-  Zap,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, ExternalLink, Link2, Plus, Save, Trash2 } from 'lucide-react';
 import { store } from '../../services/store';
-import { SocialSettings, SocialChannel, SocialLink, StoreSettings } from '../../types';
+import { SocialChannel, SocialLink, SocialSettings, StoreSettings } from '../../types';
 
-interface AdminSocialAccountsProps {
-  onNavigateToInbox?: () => void;
-}
+const SOCIAL_CHANNELS: Array<{ channel: SocialChannel; label: string }> = [
+  { channel: 'whatsapp', label: 'WhatsApp' },
+  { channel: 'facebook', label: 'Facebook' },
+  { channel: 'instagram', label: 'Instagram' },
+  { channel: 'tiktok', label: 'TikTok' },
+  { channel: 'twitter', label: 'X / Twitter' },
+];
 
-export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavigateToInbox }) => {
+export const AdminSocialAccounts: React.FC = () => {
   const [settings, setSettings] = useState<SocialSettings>(store.getSocialSettings());
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(store.getStoreSettings());
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const [storeSavedSuccess, setStoreSavedSuccess] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [newLinkLabel, setNewLinkLabel] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
-  const [settingsError, setSettingsError] = useState('');
-  const [isSavingSocialSettings, setIsSavingSocialSettings] = useState(false);
-  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
-
-  // Incoming Webhook Knock Simulator States
-  const [testChannel, setTestChannel] = useState<SocialChannel>('whatsapp');
-  const [testCustomerName, setTestCustomerName] = useState('Rahim Ahmed');
-  const [testCustomerHandle, setTestCustomerHandle] = useState('+880 1712-899456');
-  const [testMessageText, setTestMessageText] = useState(
-    'Hi! I saw your post on WhatsApp about the Sony WH-1000XM5 headphones. Is the discount still live on Amazon?'
-  );
-  const [simulatedAlert, setSimulatedAlert] = useState<{
-    customerName: string;
-    channel: SocialChannel;
-    text: string;
-  } | null>(null);
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setSettings(store.getSocialSettings());
     setStoreSettings(store.getStoreSettings());
   }, []);
 
-  const handleChange = (field: keyof SocialSettings, value: any) => {
-    setSettings((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const updateSettings = (patch: Partial<SocialSettings>) => {
+    setSettings((current) => ({ ...current, ...patch }));
   };
 
-  const handleStoreChange = (field: keyof StoreSettings, value: any) => {
-    setStoreSettings((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSaveStore = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveStore = (event: React.FormEvent) => {
+    event.preventDefault();
     store.updateStoreSettings(storeSettings);
-    setStoreSavedSuccess(true);
-    setTimeout(() => setStoreSavedSuccess(false), 3000);
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2500);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          handleStoreChange('logoUrl', reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setStoreSettings((current) => ({ ...current, logoUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSettingsError('');
-    setIsSavingSocialSettings(true);
-    try {
-      const saved = await store.updateSocialSettings(settings);
-      setSettings(saved);
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not save social settings.';
-      setSettings(store.getSocialSettings());
-      setSettingsError(`Saved on this browser, but could not sync to the server: ${message}`);
-    } finally {
-      setIsSavingSocialSettings(false);
-    }
-  };
-
-  const toggleSocialChannel = (channel: SocialChannel) => {
-    if (channel === 'website') return;
-    const persistedSettings = store.getSocialSettings();
-    const visibleChannels = persistedSettings.visibleChannels.includes(channel)
-      ? persistedSettings.visibleChannels.filter((item) => item !== channel)
-      : [...persistedSettings.visibleChannels, channel];
-    void saveVisibilitySettings({ ...persistedSettings, visibleChannels });
-    setSettings((current) => ({
-      ...current,
-      visibleChannels: current.visibleChannels.includes(channel)
-        ? current.visibleChannels.filter((item) => item !== channel)
-        : [...current.visibleChannels, channel],
-    }));
-  };
-
-  const toggleChatHeader = (visible: boolean) => {
-    const persistedSettings = store.getSocialSettings();
-    setSettings((current) => ({ ...current, chatHeaderVisible: visible }));
-    void saveVisibilitySettings({ ...persistedSettings, chatHeaderVisible: visible });
-  };
-
-  const saveVisibilitySettings = async (updated: SocialSettings) => {
-    setIsSavingVisibility(true);
-    setSettingsError('');
-    try {
-      await store.updateSocialSettings(updated);
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not update site visibility.';
-      setSettingsError(`Updated on this browser, but could not sync to the server: ${message}`);
-      const current = store.getSocialSettings();
-      setSettings((draft) => ({
-        ...draft,
-        chatHeaderVisible: current.chatHeaderVisible,
-        visibleChannels: current.visibleChannels,
-      }));
-    } finally {
-      setIsSavingVisibility(false);
-    }
+  const toggleChannel = (channel: SocialChannel) => {
+    const visibleChannels = settings.visibleChannels.includes(channel)
+      ? settings.visibleChannels.filter((item) => item !== channel)
+      : [...settings.visibleChannels, channel];
+    updateSettings({ visibleChannels });
   };
 
   const addSocialLink = () => {
     const label = newLinkLabel.trim();
     const url = newLinkUrl.trim();
     if (!label || !url) {
-      setSettingsError('Enter a social platform name and its full link.');
+      setError('Enter a social platform name and its full link.');
       return;
     }
     if (settings.customLinks.length >= 8) {
-      setSettingsError('You can add up to 8 custom social links.');
+      setError('You can add up to 8 custom social links.');
       return;
     }
-    setSettingsError('');
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid protocol');
+    } catch {
+      setError('Enter a valid public http:// or https:// link.');
+      return;
+    }
+    setError('');
     const link: SocialLink = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       label,
       url,
       enabled: true,
     };
-    handleChange('customLinks', [...settings.customLinks, link]);
+    updateSettings({ customLinks: [...settings.customLinks, link] });
     setNewLinkLabel('');
     setNewLinkUrl('');
   };
 
-  const updateSocialLink = (id: string, field: 'label' | 'url', value: string) => {
-    handleChange(
-      'customLinks',
-      settings.customLinks.map((link) => link.id === id ? { ...link, [field]: value } : link)
-    );
+  const saveSocialSettings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setIsSaving(true);
+    try {
+      const result = await store.updateSocialSettings(settings);
+      setSettings(result);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2500);
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : 'Could not save social links.';
+      setSettings(store.getSocialSettings());
+      setError(`Saved on this browser, but could not sync across devices: ${message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
-
-  const removeSocialLink = (id: string) => {
-    handleChange('customLinks', settings.customLinks.filter((link) => link.id !== id));
-  };
-
-  const copyToClipboard = (text: string, fieldName: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const testLink = (channel: Exclude<SocialChannel, 'website'>) => {
-    const url = store.getSocialUrl(
-      channel,
-      'Hello! This is a test message from Kefayaan settings preview.'
-    );
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  // Execute Simulated Incoming Customer Message
-  const handleSimulateKnock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!testMessageText.trim()) return;
-
-    store.receiveExternalWebhook({
-      channel: testChannel,
-      customerName: testCustomerName.trim() || 'New Social Shopper',
-      customerHandle: testCustomerHandle.trim() || (testChannel === 'whatsapp' ? '+880 1711-223344' : '@customer'),
-      text: testMessageText.trim(),
-    });
-
-    setSimulatedAlert({
-      customerName: testCustomerName,
-      channel: testChannel,
-      text: testMessageText,
-    });
-  };
-
-  const webhookEndpoint = `${window.location.origin}/api/webhooks/social`;
-  const webhookVerifyToken = 'kefayaan_verify_token_2026';
 
   return (
     <div className="space-y-6">
-      {/* 1. Store Identity & Amazon Official Store Affiliate Link (User Request #1) */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
-              <img
-                src={storeSettings.logoUrl || '/assets/aistudio/DP_af5fa802.png'}
-                alt={storeSettings.shopName}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-slate-950">
-                  Store Identity & Amazon Official Store Link
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold uppercase">
-                  Live
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                দোকানের নাম, লোগো এবং অফিসিয়াল অ্যামাজন এফিলিয়েট স্টোর লিংক পরিবর্তন করতে পারবেন।
-              </p>
-            </div>
-          </div>
-
-          {storeSavedSuccess && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Amazon Store Link Updated!</span>
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleSaveStore} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            {/* Shop Name */}
-            <div className="space-y-1">
-              <label className="font-semibold text-slate-700">Shop Name (দোকানের নাম)</label>
-              <input
-                type="text"
-                value={storeSettings.shopName}
-                onChange={(e) => handleStoreChange('shopName', e.target.value)}
-                placeholder="e.g. Kefayaan"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-            </div>
-
-            {/* Amazon Official Store Link */}
-            <div className="md:col-span-2 space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-900 flex items-center gap-1.5">
-                  <span className="text-amber-600">★</span>
-                  <span>Amazon Official Store Affiliate URL (অ্যামাজন হোমপেজ স্টোর লিংক) *</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    Total Clicks Tracked: <strong className="text-slate-900">{storeSettings.officialStoreClicksCount || 0}</strong>
-                  </span>
-                  <a
-                    href={storeSettings.amazonOfficialStoreUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 underline"
-                  >
-                    <span>Test Storefront Link</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  required
-                  value={storeSettings.amazonOfficialStoreUrl}
-                  onChange={(e) => handleStoreChange('amazonOfficialStoreUrl', e.target.value)}
-                  placeholder="https://link.amazon/B0dbjUEFY"
-                  className="flex-1 px-3.5 py-2.5 bg-amber-50/40 border border-amber-300 rounded-xl font-mono text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-slate-900"
-                />
-              </div>
-              <p className="text-[11px] text-slate-500">
-                This link powers the prominent <strong>"Amazon Official Store"</strong> button in your website header, navigation menu, and footer.
-              </p>
-            </div>
-
-            {/* Logo Image URL / Upload */}
-            <div className="space-y-1">
-              <label className="font-semibold text-slate-700">Logo Image Path or URL</label>
-              <input
-                type="text"
-                value={storeSettings.logoUrl}
-                onChange={(e) => handleStoreChange('logoUrl', e.target.value)}
-                placeholder="/assets/aistudio/DP_af5fa802.png"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:bg-white focus:outline-none"
-              />
-            </div>
-
-            {/* Upload Logo File */}
-            <div className="space-y-1">
-              <label className="font-semibold text-slate-700">Or Upload New Logo File</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Official Store Configuration</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Top Banner for Social Messaging */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-xs font-semibold mb-1.5">
-            <Link2 className="w-3.5 h-3.5" />
-            <span>Social Media Channels & Inbound Messaging Hub</span>
-          </div>
-          <h2 className="text-xl font-bold text-slate-950">
-            Connect Social Media & Inbound Knocks
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mt-1">
-            Configure your accounts so when customers message you on <strong>Facebook Page</strong> or <strong>WhatsApp</strong>, their messages land directly here in your website dashboard for real-time replies.
-          </p>
+          <h2 className="text-lg font-bold text-slate-950">Store Identity</h2>
+          <p className="mt-1 text-xs text-slate-500">Manage your storefront name, logo, and Amazon link.</p>
         </div>
-
-        {savedSuccess && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold animate-in fade-in duration-200">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Accounts Saved & Connected!</span>
-          </div>
-        )}
-      </div>
-
-
-      {/* Simulated Inbound Message Alert Toast */}
-      {simulatedAlert && (
-        <div className="bg-slate-950 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">
-                  New Inbound Knock Received from {simulatedAlert.channel.toUpperCase()}!
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">Just now</span>
-              </div>
-              <p className="text-xs text-slate-200 font-medium">
-                <strong>{simulatedAlert.customerName}:</strong> "{simulatedAlert.text}"
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setSimulatedAlert(null)}
-              className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
-            >
-              Dismiss
-            </button>
-            {onNavigateToInbox && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSimulatedAlert(null);
-                  onNavigateToInbox();
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                <span>Open in Social Inbox & Reply</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Feature 1: Live Incoming Knock Tester / Simulator */}
-      <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 rounded-2xl p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-slate-900">
-            <Zap className="w-5 h-5 text-amber-600" />
-            <h3 className="text-sm font-bold">
-              Live Inbound Knock Simulator (টেস্ট করে দেখুন কাস্টমার নক দিলে কীভাবে আসবে)
-            </h3>
-          </div>
-          <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-            Real-Time Inbox Ingestion
-          </span>
-        </div>
-
-        <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
-          যখন কোনো কাস্টমার আপনার <strong>WhatsApp</strong> বা <strong>Facebook Page</strong> এ মেসেজ দেয়, তখন আপনার এই ওয়েবসাইটে মেসেজটি কীভাবে চলে আসবে তা এখনই পরীক্ষা করে দেখতে পারেন। নিচে যেকোনো মেসেজ লিখে <strong>"Simulate Incoming Customer Knock"</strong> বাটনে চাপ দিন:
-        </p>
-
-        <form onSubmit={handleSimulateKnock} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
-          <div className="sm:col-span-3 space-y-1">
-            <label className="text-[11px] font-semibold text-slate-700">Platform</label>
-            <select
-              value={testChannel}
-              onChange={(e) => {
-                const ch = e.target.value as SocialChannel;
-                setTestChannel(ch);
-                if (ch === 'whatsapp') {
-                  setTestCustomerHandle('+880 1712-899456');
-                  setTestMessageText('Hi! Knocking on your WhatsApp. Is this monitor in stock with Prime delivery?');
-                } else if (ch === 'facebook') {
-                  setTestCustomerHandle('facebook.com/rahim.profile');
-                  setTestMessageText('Assalamu Alaikum! Knocked on your Facebook page about the mechanical keyboard price.');
-                } else if (ch === 'instagram') {
-                  setTestCustomerHandle('@rahim_ig');
-                  setTestMessageText('Hey! Sent you an Instagram DM about the Herman Miller chair warranty.');
-                }
-              }}
-              className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none font-semibold text-slate-800"
-            >
-              <option value="whatsapp">WhatsApp Message</option>
-              <option value="facebook">Facebook Page Knock</option>
-              <option value="instagram">Instagram Direct DM</option>
-              <option value="tiktok">TikTok Message</option>
-              <option value="twitter">Twitter / X Message</option>
-            </select>
-          </div>
-
-          <div className="sm:col-span-3 space-y-1">
-            <label className="text-[11px] font-semibold text-slate-700">Customer Name</label>
+        <form onSubmit={handleSaveStore} className="grid grid-cols-1 gap-4 text-xs md:grid-cols-2">
+          <label className="space-y-1">
+            <span className="font-semibold text-slate-700">Shop Name</span>
             <input
-              type="text"
-              value={testCustomerName}
-              onChange={(e) => setTestCustomerName(e.target.value)}
-              placeholder="e.g. Rahim Ahmed"
-              className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none"
+              value={storeSettings.shopName}
+              onChange={(event) => setStoreSettings((current) => ({ ...current, shopName: event.target.value }))}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5"
             />
-          </div>
-
-          <div className="sm:col-span-6 space-y-1">
-            <label className="text-[11px] font-semibold text-slate-700">Customer's Message (নক মেসেজ)</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={testMessageText}
-                onChange={(e) => setTestMessageText(e.target.value)}
-                placeholder="Type customer message..."
-                className="flex-1 px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
-              >
-                <Send className="w-3.5 h-3.5 text-amber-400" />
-                <span>Simulate Knock</span>
-              </button>
-            </div>
+          </label>
+          <label className="space-y-1 md:col-span-2">
+            <span className="font-semibold text-slate-700">Amazon Official Store URL</span>
+            <input
+              type="url"
+              required
+              value={storeSettings.amazonOfficialStoreUrl}
+              onChange={(event) => setStoreSettings((current) => ({ ...current, amazonOfficialStoreUrl: event.target.value }))}
+              className="w-full rounded-xl border border-amber-300 bg-amber-50/40 px-3.5 py-2.5 font-mono"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="font-semibold text-slate-700">Logo URL or path</span>
+            <input
+              value={storeSettings.logoUrl}
+              onChange={(event) => setStoreSettings((current) => ({ ...current, logoUrl: event.target.value }))}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 font-mono"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="font-semibold text-slate-700">Upload logo</span>
+            <input type="file" accept="image/*" onChange={handleLogoUpload} className="w-full text-xs text-slate-500" />
+          </label>
+          <div className="flex items-center justify-between gap-3 md:col-span-2">
+            <span className="text-[11px] text-slate-500">
+              Official store clicks: {storeSettings.officialStoreClicksCount || 0}
+            </span>
+            <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 font-bold text-slate-950 hover:bg-amber-500">
+              <Save className="h-4 w-4" />
+              Save Store Settings
+            </button>
           </div>
         </form>
-      </div>
+      </section>
 
-      {/* Main Settings Form */}
-      <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Account Inputs */}
-        <div className="lg:col-span-8 space-y-6">
-          {settingsError && (
-            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
-              {settingsError}
-            </div>
-          )}
+      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <Link2 className="mt-0.5 h-5 w-5 text-amber-600" />
+          <div>
+            <h2 className="text-lg font-bold text-slate-950">Social Media Links</h2>
+            <p className="mt-1 text-xs text-slate-500">Choose which platforms appear on the homepage and add custom profiles.</p>
+          </div>
+        </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Website Chat &amp; Social Visibility</h3>
-              <p className="text-[11px] text-slate-500">Choose whether the chat title and each social button appear on your site.</p>
-            </div>
-            <label className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 p-3">
-              <span>
-                <span className="block text-xs font-semibold text-slate-800">Show chat header</span>
-                <span className="block text-[11px] text-slate-500">Hide or show the “Kefayaan Live Help” bar in the chat window.</span>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.chatHeaderVisible}
-                onChange={(event) => toggleChatHeader(event.target.checked)}
-                disabled={isSavingVisibility}
-                className="h-4 w-4 accent-amber-500"
-              />
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {([
-                ['whatsapp', 'WhatsApp'],
-                ['facebook', 'Facebook Messenger'],
-                ['instagram', 'Instagram'],
-                ['tiktok', 'TikTok'],
-                ['twitter', 'Twitter / X'],
-              ] as const).map(([channel, label]) => (
-                <label key={channel} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={settings.visibleChannels.includes(channel)}
-                    onChange={() => toggleSocialChannel(channel)}
-                    disabled={isSavingVisibility}
-                    className="h-4 w-4 accent-amber-500"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
+        {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">{error}</div>}
+        {saved && <div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-700"><CheckCircle2 className="h-4 w-4" />Settings saved.</div>}
+
+        <form onSubmit={saveSocialSettings} className="space-y-5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {SOCIAL_CHANNELS.map(({ channel, label }) => (
+              <label key={channel} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={settings.visibleChannels.includes(channel)}
+                  onChange={() => toggleChannel(channel)}
+                  className="h-4 w-4 accent-amber-500"
+                />
+                {label}
+              </label>
+            ))}
           </div>
 
-          {/* Card: Webhook API Details (Meta & Zapier Bridge) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center gap-2 text-purple-700">
-              <Webhook className="w-5 h-5" />
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Live Webhook Receiver Endpoint (Facebook & WhatsApp Bridge)
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  This webhook URL receives incoming POST events from Meta Graph API or Zapier
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              {/* Webhook URL */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Your Webhook Callback URL</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    readOnly
-                    value={webhookEndpoint}
-                    className="w-full pl-3 pr-10 py-2 text-xs bg-slate-100 border border-slate-300 rounded-xl font-mono text-slate-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(webhookEndpoint, 'webhook')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-900"
-                    title="Copy URL"
-                  >
-                    {copiedField === 'webhook' ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Verify Token */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Meta Verify Token</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    readOnly
-                    value={webhookVerifyToken}
-                    className="w-full pl-3 pr-10 py-2 text-xs bg-slate-100 border border-slate-300 rounded-xl font-mono text-slate-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(webhookVerifyToken, 'token')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-900"
-                    title="Copy Token"
-                  >
-                    {copiedField === 'token' ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
-              <span className="font-bold text-slate-800">Supported JSON Ingestion Format:</span>
-              <pre className="text-[11px] font-mono text-slate-700 bg-white p-2 rounded border border-slate-200 overflow-x-auto">
-{`{
-  "channel": "whatsapp" | "facebook" | "instagram",
-  "customerName": "Rahim Ahmed",
-  "customerHandle": "+88017XXXXXXXX",
-  "text": "Hi, I have a question about this product!"
-}`}
-              </pre>
-            </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {([
+              ['whatsappNumber', 'WhatsApp number (with country code)'],
+              ['facebookPageUsername', 'Facebook Page username'],
+              ['instagramUsername', 'Instagram username'],
+              ['tiktokUsername', 'TikTok username'],
+              ['twitterUsername', 'X / Twitter username'],
+            ] as const).map(([field, label]) => (
+              <label key={field} className="space-y-1 text-xs">
+                <span className="font-semibold text-slate-700">{label}</span>
+                <input
+                  value={settings[field]}
+                  onChange={(event) => updateSettings({ [field]: event.target.value })}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 font-mono"
+                />
+              </label>
+            ))}
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
+          <div className="space-y-3 rounded-xl border border-slate-200 p-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Add Social Platform Links</h3>
-              <p className="text-[11px] text-slate-500">Add a Facebook Page, YouTube channel, or any other public profile URL. Saved links appear in the chat and social section.</p>
+              <h3 className="text-sm font-bold text-slate-900">Custom platforms</h3>
+              <p className="text-[11px] text-slate-500">Add YouTube, Pinterest, or any other public social profile.</p>
             </div>
             {settings.customLinks.map((link) => (
-              <div key={link.id} className="grid grid-cols-1 sm:grid-cols-[auto_1fr_2fr_auto] gap-2">
+              <div key={link.id} className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_1fr_2fr_auto]">
                 <label className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-2 text-[10px] text-slate-600">
                   <input
                     type="checkbox"
                     checked={link.enabled}
-                    onChange={(event) => handleChange(
-                      'customLinks',
-                      settings.customLinks.map((item) => item.id === link.id
-                        ? { ...item, enabled: event.target.checked }
-                        : item)
-                    )}
+                    onChange={(event) => updateSettings({
+                      customLinks: settings.customLinks.map((item) => item.id === link.id ? { ...item, enabled: event.target.checked } : item),
+                    })}
                     aria-label={`Show ${link.label} link`}
                     className="h-4 w-4 accent-amber-500"
                   />
                   Show
                 </label>
                 <input
-                  type="text"
-                  maxLength={32}
                   value={link.label}
-                  onChange={(event) => updateSocialLink(link.id, 'label', event.target.value)}
-                  aria-label={`${link.label || 'Social platform'} display name`}
-                  placeholder="Platform name, e.g. YouTube"
+                  maxLength={32}
+                  onChange={(event) => updateSettings({
+                    customLinks: settings.customLinks.map((item) => item.id === link.id ? { ...item, label: event.target.value } : item),
+                  })}
+                  aria-label={`${link.label} platform name`}
                   className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs"
                 />
                 <input
                   type="url"
                   value={link.url}
-                  onChange={(event) => updateSocialLink(link.id, 'url', event.target.value)}
-                  aria-label={`${link.label || 'Social platform'} URL`}
-                  placeholder="https://youtube.com/@yourchannel"
-                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-mono"
+                  onChange={(event) => updateSettings({
+                    customLinks: settings.customLinks.map((item) => item.id === link.id ? { ...item, url: event.target.value } : item),
+                  })}
+                  aria-label={`${link.label} URL`}
+                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-xs"
                 />
                 <button
                   type="button"
-                  onClick={() => removeSocialLink(link.id)}
-                  className="inline-flex items-center justify-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs text-red-700 hover:bg-red-50"
-                  aria-label={`Remove ${link.label || 'social link'}`}
+                  onClick={() => updateSettings({ customLinks: settings.customLinks.filter((item) => item.id !== link.id) })}
+                  aria-label={`Remove ${link.label}`}
+                  className="inline-flex items-center justify-center rounded-lg border border-red-200 px-3 py-2 text-red-600 hover:bg-red-50"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Remove
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}
             {settings.customLinks.length < 8 && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-2 border-t border-slate-100 pt-4">
+              <div className="grid grid-cols-1 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[1fr_2fr_auto]">
                 <input
-                  type="text"
-                  maxLength={32}
                   value={newLinkLabel}
+                  maxLength={32}
                   onChange={(event) => setNewLinkLabel(event.target.value)}
                   placeholder="Platform name, e.g. YouTube"
                   className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs"
@@ -692,13 +260,9 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
                   value={newLinkUrl}
                   onChange={(event) => setNewLinkUrl(event.target.value)}
                   placeholder="https://youtube.com/@yourchannel"
-                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-mono"
+                  className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-xs"
                 />
-                <button
-                  type="button"
-                  onClick={addSocialLink}
-                  className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700"
-                >
+                <button type="button" onClick={addSocialLink} className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">
                   <Plus className="h-3.5 w-3.5" />
                   Add link
                 </button>
@@ -706,286 +270,28 @@ export const AdminSocialAccounts: React.FC<AdminSocialAccountsProps> = ({ onNavi
             )}
           </div>
 
-          {/* Card: WhatsApp Configuration */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">WhatsApp / WhatsApp Business</h3>
-                  <p className="text-[11px] text-slate-500">Direct 1-click chat and inbound message link</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => testLink('whatsapp')}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <span>Test Link</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">
-                WhatsApp Phone Number (with Country Code)
-              </label>
-              <input
-                type="text"
-                value={settings.whatsappNumber}
-                onChange={(e) => handleChange('whatsappNumber', e.target.value)}
-                placeholder="e.g. +8801712345678 or +18005550199"
-                className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-950 font-mono"
-              />
-              <p className="text-[11px] text-slate-500">
-                Include country code (e.g. <code>+880</code> for Bangladesh, <code>+1</code> for USA).
-              </p>
-            </div>
-          </div>
-
-          {/* Card: Facebook Messenger */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Facebook className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Facebook Page & Messenger</h3>
-                  <p className="text-[11px] text-slate-500">Inbound knocks from your Facebook Page</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => testLink('facebook')}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <span>Test Link</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">
-                Facebook Page Username (or ID)
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-2 rounded-xl">
-                  m.me/
-                </span>
-                <input
-                  type="text"
-                  value={settings.facebookPageUsername}
-                  onChange={(e) => handleChange('facebookPageUsername', e.target.value)}
-                  placeholder="yourpagename"
-                  className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-950 font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Card: Instagram Direct */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center">
-                  <Instagram className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Instagram</h3>
-                  <p className="text-[11px] text-slate-500">Instagram profile & Direct Messages (DM)</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => testLink('instagram')}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-pink-700 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <span>Test Link</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">
-                Instagram Handle / Username
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-2 rounded-xl">
-                  instagram.com/
-                </span>
-                <input
-                  type="text"
-                  value={settings.instagramUsername}
-                  onChange={(e) => handleChange('instagramUsername', e.target.value)}
-                  placeholder="auragear_official"
-                  className="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-950 font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Card: TikTok & Twitter / X */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* TikTok */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Video className="w-4 h-4 text-slate-900" />
-                  <span className="text-xs font-bold text-slate-900">TikTok Username</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => testLink('tiktok')}
-                  className="text-[11px] text-slate-700 hover:underline flex items-center gap-0.5"
-                >
-                  <span>Test</span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
-              <input
-                type="text"
-                value={settings.tiktokUsername}
-                onChange={(e) => handleChange('tiktokUsername', e.target.value)}
-                placeholder="@auragear"
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-mono focus:bg-white focus:outline-none"
-              />
-            </div>
-
-            {/* Twitter */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Twitter className="w-4 h-4 text-sky-500" />
-                  <span className="text-xs font-bold text-slate-900">Twitter / X Handle</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => testLink('twitter')}
-                  className="text-[11px] text-slate-700 hover:underline flex items-center gap-0.5"
-                >
-                  <span>Test</span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
-              <input
-                type="text"
-                value={settings.twitterUsername}
-                onChange={(e) => handleChange('twitterUsername', e.target.value)}
-                placeholder="@auragear"
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-mono focus:bg-white focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Card: Automated Auto-Responder Greeting */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  Instant Auto-Responder
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Automatically greets customers when they send a message on the site
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.autoReplyEnabled}
-                  onChange={(e) => handleChange('autoReplyEnabled', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-              </label>
-            </div>
-
-            <textarea
-              rows={2}
-              value={settings.autoReplyMessage}
-              onChange={(e) => handleChange('autoReplyMessage', e.target.value)}
-              className="w-full p-3 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none"
-            />
-          </div>
-
-          {/* Submit Save Button */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={isSavingSocialSettings}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              <span>{isSavingSocialSettings ? 'Saving…' : 'Save & Update All Social Links'}</span>
+          <div className="flex justify-end">
+            <button type="submit" disabled={isSaving} className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-6 py-2.5 text-xs font-bold text-slate-950 hover:bg-amber-500 disabled:opacity-50">
+              <Save className="h-4 w-4" />
+              {isSaving ? 'Saving…' : 'Save Social Links'}
             </button>
           </div>
+        </form>
+
+        <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+          {SOCIAL_CHANNELS.map(({ channel, label }) => (
+            <button
+              key={channel}
+              type="button"
+              onClick={() => window.open(store.getSocialUrl(channel), '_blank', 'noopener,noreferrer')}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Test {label}
+              <ExternalLink className="h-3 w-3" />
+            </button>
+          ))}
         </div>
-
-        {/* Right Column: Step-by-Step Connection Instructions */}
-        <div className="lg:col-span-4 space-y-5">
-          <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 space-y-4">
-            <div className="flex items-center gap-2 text-amber-400">
-              <Info className="w-4 h-4" />
-              <h3 className="text-xs font-bold uppercase tracking-wider">
-                Facebook & WhatsApp Knocks Guide (বাংলা গাইড)
-              </h3>
-            </div>
-
-            <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-              <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
-                <strong className="text-amber-300 block text-xs">
-                  পদ্ধতি ১: Zapier বা Make.com দিয়ে ১ মিনিটে লাইভ কানেক্ট (সবচেয়ে সহজ)
-                </strong>
-                <p className="text-[11px] text-slate-300 leading-normal">
-                  ১. বিনামূল্যে <a href="https://zapier.com" target="_blank" rel="noreferrer" className="text-amber-400 underline">Zapier.com</a> বা <a href="https://make.com" target="_blank" rel="noreferrer" className="text-amber-400 underline">Make.com</a> এ যান।<br />
-                  ২. <strong>Trigger</strong> সিলেক্ট করুন: <em>"Facebook Messenger / Facebook Pages (New Message)"</em> অথবা <em>"WhatsApp Business (New Message)"</em>।<br />
-                  ৩. <strong>Action</strong> সিলেক্ট করুন: <em>"Webhooks by Zapier (POST)"</em>।<br />
-                  ৪. URL বক্সে আপনার সাইটের <strong>Webhook URL</strong> দিন।<br />
-                  ব্যস! এখন যে কেউ আপনার ফেসবুক পেজ বা হোয়াটসঅ্যাপে নক দিলেই স্বয়ংক্রিয়ভাবে মেসেজটি আপনার এই ড্যাশবোর্ডে চলে আসবে!
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
-                <strong className="text-amber-300 block text-xs">
-                  পদ্ধতি ২: Meta for Developers (অফিশিয়াল ফ্রি মেটা ওয়েবহুক)
-                </strong>
-                <p className="text-[11px] text-slate-300 leading-normal">
-                  ১. <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-amber-400 underline">developers.facebook.com</a> এ গিয়ে একটি App তৈরি করুন।<br />
-                  ২. <strong>Messenger</strong> এবং <strong>WhatsApp</strong> প্রোডাক্ট যোগ করুন।<br />
-                  ৩. Webhooks মেনুতে গিয়ে Callback URL বক্সে আপনার Webhook URL এবং Verify Token বক্সে <code className="text-amber-300">{webhookVerifyToken}</code> দিন।<br />
-                  ৪. <code>messages</code> ফিল্ডটি সাবস্ক্রাইব করুন।
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
-                <strong className="text-amber-300 block text-xs">
-                  পদ্ধতি ৩: ManyChat / Wati / Chatfuel ইন্টিগ্রেশন
-                </strong>
-                <p className="text-[11px] text-slate-300 leading-normal">
-                  আপনি যদি ManyChat বা Wati বট ব্যবহার করেন, তবে Automation সেটিংসে গিয়ে External Request / Webhook অপশনে আপনার Webhook URL পেস্ট করে দিলেই কাস্টমারের যেকোনো নক এখানে সিঙ্ক হবে।
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-800 text-[10px] text-slate-400">
-              আপনি উপরের <strong>"Live Inbound Knock Simulator"</strong> দিয়ে এখনই টেস্ট করে দেখতে পারেন!
-            </div>
-          </div>
-
-          {/* Quick Help Card */}
-          <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-2xl text-slate-800 space-y-2">
-            <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-amber-700" />
-              <span>Real-Time Inbox Notifications</span>
-            </h4>
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              When a new message arrives from Facebook or WhatsApp, your Admin top bar unread badge updates immediately, and you can reply directly from this site!
-            </p>
-          </div>
-        </div>
-      </form>
+      </section>
     </div>
   );
 };

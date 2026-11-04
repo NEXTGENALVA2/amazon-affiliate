@@ -274,7 +274,7 @@ export const BuyerComparisonTable: React.FC<BuyerComparisonTableProps> = ({
               Can I ask a specialist before purchasing?
             </h4>
             <p className="text-slate-600 leading-relaxed">
-              Yes! Click the <strong>"Live Chat & WhatsApp"</strong> button on the bottom-right corner. You can ask our staff questions directly on the website, or connect immediately through WhatsApp, Instagram, or Messenger.
+              Yes! Use the social media links on the homepage to contact us through WhatsApp, Instagram, Facebook, or another enabled platform.
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, ExternalLink, Star, Play, CheckCircle2, MessageCircle, ShieldCheck, Truck, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check } from 'lucide-react';
+import { X, ExternalLink, Star, Play, CheckCircle2, ShieldCheck, Truck, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
 
@@ -7,7 +7,7 @@ interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
   onBuyNow: (product: Product, customUrl?: string) => void;
-  onOpenChatWithProduct: (product: Product) => void;
+  onOpenSocialLinks: () => void;
   isPage?: boolean;
 }
 
@@ -15,7 +15,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
   onClose,
   onBuyNow,
-  onOpenChatWithProduct,
+  onOpenSocialLinks,
   isPage = false,
 }) => {
   const hasVariants = Boolean(product?.variants?.length);
@@ -366,14 +366,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </button>
 
                 <button
-                  onClick={() => {
-                    onClose();
-                    onOpenChatWithProduct(product);
-                  }}
+                  onClick={onOpenSocialLinks}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                 >
-                  <MessageCircle className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Ask Question on Live Chat or WhatsApp</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Contact Us on Social Media</span>
                 </button>
 
                 <p className="text-[10px] text-slate-400 text-center leading-tight">

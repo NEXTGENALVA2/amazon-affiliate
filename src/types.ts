@@ -74,45 +74,7 @@ export interface VisitorLog {
   ipMasked?: string;
 }
 
-export type SocialChannel = 'website' | 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' | 'twitter';
-
-export interface ChatMessage {
-  id: string;
-  conversationId: string;
-  sender: 'customer' | 'admin';
-  channel: SocialChannel;
-  customerName: string;
-  customerHandle?: string;
-  text: string;
-  attachments?: ChatAttachment[];
-  timestamp: string;
-  isRead: boolean;
-  productId?: string;
-  productTitle?: string;
-}
-
-export interface ChatAttachment {
-  path: string;
-  type: 'image' | 'audio';
-  name: string;
-  mimeType: string;
-  size: number;
-  url?: string;
-}
-
-export interface Conversation {
-  id: string;
-  customerName: string;
-  customerHandle: string;
-  channel: SocialChannel;
-  lastMessage: string;
-  lastUpdated: string;
-  unreadCount: number;
-  status: 'open' | 'replied' | 'archived';
-  productId?: string;
-  productTitle?: string;
-  messages: ChatMessage[];
-}
+export type SocialChannel = 'whatsapp' | 'instagram' | 'facebook' | 'tiktok' | 'twitter';
 
 export interface AnalyticsFilter {
   period: 'today' | '7days' | 'this_month' | '30days' | 'yearly' | 'all';
@@ -124,12 +86,8 @@ export interface SocialSettings {
   instagramUsername: string;
   tiktokUsername: string;
   twitterUsername: string;
-  autoReplyEnabled: boolean;
-  autoReplyMessage: string;
-  chatHeaderVisible: boolean;
   visibleChannels: SocialChannel[];
   customLinks: SocialLink[];
-  webhookUrl?: string;
 }
 
 export interface SocialLink {

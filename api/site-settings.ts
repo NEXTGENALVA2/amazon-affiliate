@@ -1,14 +1,14 @@
 import { ServerResponse } from 'node:http';
+import { createClient } from '@supabase/supabase-js';
 import type { SocialChannel, SocialSettings } from '../src/types.js';
 import {
-  assertSameOrigin,
-  ChatApiError,
-  ChatRequest,
-  getChatAdminClient,
-  readRequestBody,
+  AdminApiError,
+  assertAdminRequestOrigin,
+  readAdminRequestBody,
   requireAdmin,
-  sendJson,
-} from '../server/chat.js';
+  sendAdminJson,
+} from '../server/admin-auth.js';
+import type { AdminRequest } from '../server/admin-auth.js';
 
 const SETTING_ID = 'social';
 const SOCIAL_CHANNELS = new Set<SocialChannel>([
@@ -24,16 +24,13 @@ const DEFAULT_SETTINGS: SocialSettings = {
   instagramUsername: 'kefayaan_official',
   tiktokUsername: 'kefayaan',
   twitterUsername: 'kefayaan',
-  autoReplyEnabled: true,
-  autoReplyMessage: 'Thank you for messaging Kefayaan! An Amazon product specialist has received your inquiry and will reply shortly.',
-  chatHeaderVisible: true,
   visibleChannels: [...SOCIAL_CHANNELS],
   customLinks: [],
 };
 
 function validateSettings(input: unknown): SocialSettings {
   if (!input || typeof input !== 'object') {
-    throw new ChatApiError(400, 'Social settings are required.');
+    throw new AdminApiError(400, 'Social settings are required.');
   }
   const value = input as Record<string, unknown>;
   const visibleChannels = Array.isArray(value.visibleChannels)
@@ -42,26 +39,26 @@ function validateSettings(input: unknown): SocialSettings {
     )
     : [];
   const customLinks = Array.isArray(value.customLinks) ? value.customLinks : [];
-  if (customLinks.length > 8) throw new ChatApiError(400, 'You can add up to 8 custom social links.');
+  if (customLinks.length > 8) throw new AdminApiError(400, 'You can add up to 8 custom social links.');
 
   const links = customLinks.map((rawLink) => {
-    if (!rawLink || typeof rawLink !== 'object') throw new ChatApiError(400, 'Invalid social link.');
+    if (!rawLink || typeof rawLink !== 'object') throw new AdminApiError(400, 'Invalid social link.');
     const link = rawLink as Record<string, unknown>;
     const id = typeof link.id === 'string' ? link.id.trim() : '';
     const label = typeof link.label === 'string' ? link.label.trim() : '';
     const rawUrl = typeof link.url === 'string' ? link.url.trim() : '';
     if (!/^[a-zA-Z0-9_-]{1,80}$/.test(id) || !label || label.length > 32 || rawUrl.length > 500) {
-      throw new ChatApiError(400, 'Each social link needs a valid ID, a name (up to 32 characters), and a URL.');
+      throw new AdminApiError(400, 'Each social link needs a valid ID, a name (up to 32 characters), and a URL.');
     }
 
     let url: URL;
     try {
       url = new URL(rawUrl);
     } catch {
-      throw new ChatApiError(400, `The URL for ${label} is invalid.`);
+      throw new AdminApiError(400, `The URL for ${label} is invalid.`);
     }
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
-      throw new ChatApiError(400, `The URL for ${label} must be a public HTTP or HTTPS link.`);
+      throw new AdminApiError(400, `The URL for ${label} must be a public HTTP or HTTPS link.`);
     }
     return { id, label, url: url.toString(), enabled: link.enabled !== false };
   });
@@ -70,7 +67,7 @@ function validateSettings(input: unknown): SocialSettings {
     const candidate = value[key];
     if (candidate === undefined) return fallback;
     if (typeof candidate !== 'string' || candidate.length > maxLength) {
-      throw new ChatApiError(400, `Invalid ${key} value.`);
+      throw new AdminApiError(400, `Invalid ${key} value.`);
     }
     return candidate.trim();
   };
@@ -81,37 +78,40 @@ function validateSettings(input: unknown): SocialSettings {
     instagramUsername: stringValue('instagramUsername', DEFAULT_SETTINGS.instagramUsername, 120),
     tiktokUsername: stringValue('tiktokUsername', DEFAULT_SETTINGS.tiktokUsername, 120),
     twitterUsername: stringValue('twitterUsername', DEFAULT_SETTINGS.twitterUsername, 120),
-    autoReplyEnabled: value.autoReplyEnabled !== false,
-    autoReplyMessage: stringValue('autoReplyMessage', DEFAULT_SETTINGS.autoReplyMessage, 500),
-    chatHeaderVisible: value.chatHeaderVisible !== false,
     visibleChannels: [...new Set(visibleChannels)],
     customLinks: links,
-    webhookUrl: stringValue('webhookUrl', '', 500),
   };
 }
 
-export default async function handler(request: ChatRequest, response: ServerResponse): Promise<void> {
+export default async function handler(request: AdminRequest, response: ServerResponse): Promise<void> {
   try {
-    const client = getChatAdminClient();
+    const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceRoleKey) {
+      throw new AdminApiError(503, 'Social settings database is not configured on the server.');
+    }
+    const client = createClient(url, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     if (request.method === 'GET') {
       const { data, error } = await client
         .from('storefront_settings')
         .select('payload')
         .eq('id', SETTING_ID)
         .maybeSingle();
-      if (error) throw new ChatApiError(502, `Could not load storefront settings: ${error.message}`);
-      sendJson(response, 200, { data: data?.payload ? validateSettings(data.payload) : null });
+      if (error) throw new AdminApiError(502, `Could not load storefront settings: ${error.message}`);
+      sendAdminJson(response, 200, { data: data?.payload ? validateSettings(data.payload) : null });
       return;
     }
 
     if (request.method !== 'POST') {
       response.setHeader('Allow', 'GET, POST');
-      throw new ChatApiError(405, 'Method not allowed.');
+      throw new AdminApiError(405, 'Method not allowed.');
     }
 
-    assertSameOrigin(request);
+    assertAdminRequestOrigin(request);
     requireAdmin(request);
-    const body = readRequestBody(request);
+    const body = readAdminRequestBody(request);
     const settings = validateSettings(body.settings);
     const { error } = await client
       .from('storefront_settings')
@@ -119,14 +119,14 @@ export default async function handler(request: ChatRequest, response: ServerResp
         { id: SETTING_ID, payload: settings, updated_at: new Date().toISOString() },
         { onConflict: 'id' }
       );
-    if (error) throw new ChatApiError(502, `Could not save storefront settings: ${error.message}`);
-    sendJson(response, 200, { data: settings });
+    if (error) throw new AdminApiError(502, `Could not save storefront settings: ${error.message}`);
+    sendAdminJson(response, 200, { data: settings });
   } catch (error) {
-    if (error instanceof ChatApiError) {
-      sendJson(response, error.status, { error: error.message });
+    if (error instanceof AdminApiError) {
+      sendAdminJson(response, error.status, { error: error.message });
       return;
     }
     console.error('Storefront settings request failed', error);
-    sendJson(response, 500, { error: 'Could not update storefront settings. Please try again.' });
+    sendAdminJson(response, 500, { error: 'Could not update storefront settings. Please try again.' });
   }
 }

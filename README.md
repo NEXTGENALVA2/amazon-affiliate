@@ -20,25 +20,21 @@ View your app in AI Studio: https://ai.studio/apps/6b077d48-0efe-4cda-aed0-4364e
    `npm run dev`
 # amazon-affiliate
 
-## Website chat, image, and voice messages
+## Admin login and social links
 
-The website chat uses Vercel's `/api/chat` function and Supabase. To enable it:
+The customer chat widget and inbox have been removed. Admin sign-in uses the separate `/api/admin-auth` endpoint.
 
-1. Run [`supabase/chat-schema.sql`](./supabase/chat-schema.sql) in the Supabase SQL Editor. It creates private chat tables and a private `chat-attachments` bucket.
-2. Configure these Vercel environment variables for the deployment:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY` (server-only; never use a `VITE_` prefix)
-   - `CHAT_ADMIN_USERNAME`
-   - `CHAT_ADMIN_PASSWORD`
-   - `CHAT_SESSION_SECRET` (random, at least 32 characters)
-3. Keep `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set for the browser to upload using short-lived signed upload tokens.
-4. Redeploy. Admin sign-in uses the server-configured credentials, and admin sessions are held in an HTTP-only cookie.
+Set these server-only variables in Vercel (Production) and redeploy:
 
-Customer messages are stored in Supabase and the admin inbox refreshes every five seconds. Images (JPG, PNG, WebP, GIF; up to 5 MB each) and voice recordings (up to 2 minutes / 12 MB) are stored in the private bucket and served through expiring signed URLs. The chat includes a `tel:` call link using the configured WhatsApp phone number. This is a regular phone call link; live in-browser voice/video calling requires a separate calling provider and credentials.
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD` (use a strong, unique password)
+- `ADMIN_SESSION_SECRET` (random, at least 32 characters)
 
-The same schema file also creates the private `storefront_settings` table used for social links and chat-header visibility. If you already ran an earlier version of the schema, run the current file again after deploying to add this table. Admins can then manage header visibility, built-in channel buttons, and up to eight custom profile links from **Admin → Social Accounts**. Settings are read publicly by the storefront and can only be changed from the authenticated admin session.
+For backwards compatibility, the previous `CHAT_ADMIN_USERNAME`, `CHAT_ADMIN_PASSWORD`, and `CHAT_SESSION_SECRET` names are still accepted.
 
-The Vite dev server provides local handlers for `/api/chat` and `/api/site-settings`, so `npm run dev` also supports admin sign-in. Add `CHAT_ADMIN_USERNAME`, `CHAT_ADMIN_PASSWORD`, and a random `CHAT_SESSION_SECRET` (at least 32 characters) to `.env.local`. Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` there as well to test chat and social-settings persistence; keep the service-role key server-only. You can also use `vercel dev` to run the project with Vercel's local runtime.
+Admins can manage enabled social profiles from **Admin → Social Accounts**. To save those links across devices, run [`supabase/site-settings.sql`](./supabase/site-settings.sql) in the Supabase SQL Editor and set `SUPABASE_URL` plus `SUPABASE_SERVICE_ROLE_KEY` in Vercel. Keep the service-role key server-only.
+
+For local development, add `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` to `.env.local`; the Vite dev server provides local handlers for admin authentication and social settings.
 
 ## Product URLs and SEO
 

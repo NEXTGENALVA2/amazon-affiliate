@@ -3,12 +3,15 @@ import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
-import chatApi from './api/chat.js';
+import adminAuthApi from './api/admin-auth.js';
 import siteSettingsApi from './api/site-settings.js';
-import { ChatApiError, sendJson } from './server/chat.js';
-import type { ChatRequest } from './server/chat.js';
+import { AdminApiError, sendAdminJson } from './server/admin-auth.js';
+import type { AdminRequest } from './server/admin-auth.js';
 
 const serverEnvironmentKeys = [
+  'ADMIN_USERNAME',
+  'ADMIN_PASSWORD',
+  'ADMIN_SESSION_SECRET',
   'CHAT_ADMIN_USERNAME',
   'CHAT_ADMIN_PASSWORD',
   'CHAT_SESSION_SECRET',
@@ -48,8 +51,8 @@ export default defineConfig(({ mode }) => {
             next: (error?: Error) => void
           ) => {
             const pathname = new URL(request.url || '/', 'http://localhost').pathname;
-            const handler = pathname === '/api/chat'
-              ? chatApi
+            const handler = pathname === '/api/admin-auth'
+              ? adminAuthApi
               : pathname === '/api/site-settings'
                 ? siteSettingsApi
                 : null;
@@ -65,17 +68,17 @@ export default defineConfig(({ mode }) => {
                 const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
                 size += buffer.length;
                 if (size > 2 * 1024 * 1024) {
-                  sendJson(response, 413, { error: 'Request body is too large.' });
+                  sendAdminJson(response, 413, { error: 'Request body is too large.' });
                   return;
                 }
                 chunks.push(buffer);
               }
-              (request as ChatRequest).body = Buffer.concat(chunks).toString('utf8');
-              await handler(request as ChatRequest, response);
+              (request as AdminRequest).body = Buffer.concat(chunks).toString('utf8');
+              await handler(request as AdminRequest, response);
             } catch (error) {
               if (response.headersSent || response.writableEnded) return;
-              if (error instanceof ChatApiError) {
-                sendJson(response, error.status, { error: error.message });
+              if (error instanceof AdminApiError) {
+                sendAdminJson(response, error.status, { error: error.message });
                 return;
               }
               next(error instanceof Error ? error : new Error(String(error)));

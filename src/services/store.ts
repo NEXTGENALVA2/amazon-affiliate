@@ -4,20 +4,13 @@ import {
   StoreSettings,
   OutboundClick,
   VisitorLog,
-  Conversation,
-  ChatMessage,
   SocialChannel,
   PixelSettings,
   PixelEventLog,
 } from '../types';
 import { hasSupabase, supabase } from './supabase';
-import {
-  getPublicSocialSettings,
-  loginChatAdmin,
-  logoutChatAdmin,
-  savePublicSocialSettings,
-  verifyChatAdminSession,
-} from './chat';
+import { loginAdmin as loginAdminRequest, logoutAdmin as logoutAdminRequest, verifyAdminSession } from './adminAuth';
+import { getPublicSocialSettings, savePublicSocialSettings } from './siteSettings';
 import monitorImg from '../assets/images/curved_gaming_monitor_1793432526940.jpg';
 import headphonesImg from '../assets/images/wireless_anc_headphones_1793432526819.jpg';
 import keyboardImg from '../assets/images/mechanical_keyboard_1793432527212.jpg';
@@ -38,7 +31,6 @@ const STORAGE_KEYS = {
   PRODUCTS: 'auragear_products_v2',
   CLICKS: 'auragear_clicks_v1',
   VISITORS: 'auragear_visitors_v1',
-  CONVERSATIONS: 'auragear_conversations_v1',
   SOCIAL_SETTINGS: 'auragear_social_settings_v1',
   STORE_SETTINGS: 'kefayaan_store_settings_v1',
   PIXEL_SETTINGS: 'kefayaan_pixel_settings_v1',
@@ -73,12 +65,8 @@ const DEFAULT_SOCIAL_SETTINGS: import('../types').SocialSettings = {
   instagramUsername: 'kefayaan_official',
   tiktokUsername: 'kefayaan',
   twitterUsername: 'kefayaan',
-  autoReplyEnabled: true,
-  autoReplyMessage: 'Thank you for messaging Kefayaan! An Amazon product specialist has received your inquiry and will reply shortly.',
-  chatHeaderVisible: true,
   visibleChannels: ['whatsapp', 'instagram', 'facebook', 'tiktok', 'twitter'],
   customLinks: [],
-  webhookUrl: '',
 };
 
 // Initial Seed Products
@@ -442,200 +430,10 @@ const generateHistoricalData = () => {
   return { visitors, clicks };
 };
 
-// Initial Seed Social Conversations across channels
-const INITIAL_CONVERSATIONS: Conversation[] = [
-  {
-    id: 'conv-1',
-    customerName: 'Marcus Vance',
-    customerHandle: '+1 (415) 890-2341',
-    channel: 'whatsapp',
-    lastMessage: 'Hi! Is the Odyssey Neo G9 discount still available with Amazon Prime delivery?',
-    lastUpdated: '10 mins ago',
-    unreadCount: 1,
-    status: 'open',
-    productId: 'prod-1',
-    productTitle: 'Samsung Odyssey Neo G9 49" Curved Dual QHD Gaming Monitor',
-    messages: [
-      {
-        id: 'msg-101',
-        conversationId: 'conv-1',
-        sender: 'customer',
-        channel: 'whatsapp',
-        customerName: 'Marcus Vance',
-        customerHandle: '+1 (415) 890-2341',
-        text: 'Hi! Is the Odyssey Neo G9 discount still available with Amazon Prime delivery?',
-        timestamp: '2026-10-31T00:31:00Z',
-        isRead: false,
-        productId: 'prod-1',
-        productTitle: 'Samsung Odyssey Neo G9 49" Curved Dual QHD Gaming Monitor',
-      },
-    ],
-  },
-  {
-    id: 'conv-2',
-    customerName: 'Elena Rostova',
-    customerHandle: '@elena_studios',
-    channel: 'instagram',
-    lastMessage: 'Could you tell me if the Keychron Q1 Pro comes with tactile banana switches?',
-    lastUpdated: '35 mins ago',
-    unreadCount: 1,
-    status: 'open',
-    productId: 'prod-3',
-    productTitle: 'Keychron Q1 Pro Wireless Custom Mechanical Keyboard',
-    messages: [
-      {
-        id: 'msg-201',
-        conversationId: 'conv-2',
-        sender: 'customer',
-        channel: 'instagram',
-        customerName: 'Elena Rostova',
-        customerHandle: '@elena_studios',
-        text: 'Hey! Loved your review on the Keychron Q1. Could you tell me if the Keychron Q1 Pro comes with tactile banana switches or just reds on Amazon?',
-        timestamp: '2026-10-31T00:05:00Z',
-        isRead: false,
-        productId: 'prod-3',
-      },
-    ],
-  },
-  {
-    id: 'conv-3',
-    customerName: 'David Chen',
-    customerHandle: 'david.chen.tech',
-    channel: 'facebook',
-    lastMessage: 'Thank you for the quick verification on the Herman Miller warranty!',
-    lastUpdated: '2 hours ago',
-    unreadCount: 0,
-    status: 'replied',
-    productId: 'prod-4',
-    productTitle: 'Herman Miller Aeron Ergonomic Chair',
-    messages: [
-      {
-        id: 'msg-301',
-        conversationId: 'conv-3',
-        sender: 'customer',
-        channel: 'facebook',
-        customerName: 'David Chen',
-        customerHandle: 'david.chen.tech',
-        text: 'Does Herman Miller honor the 12-year warranty when ordered directly through the official Amazon flagship store link you provided?',
-        timestamp: '2026-10-30T22:15:00Z',
-        isRead: true,
-        productId: 'prod-4',
-      },
-      {
-        id: 'msg-302',
-        conversationId: 'conv-3',
-        sender: 'admin',
-        channel: 'facebook',
-        customerName: 'Admin Support',
-        text: 'Yes David! The link on our page directs specifically to the official Herman Miller Storefront on Amazon, which includes the genuine 12-year 3-shift warranty.',
-        timestamp: '2026-10-30T22:25:00Z',
-        isRead: true,
-      },
-      {
-        id: 'msg-303',
-        conversationId: 'conv-3',
-        sender: 'customer',
-        channel: 'facebook',
-        customerName: 'David Chen',
-        customerHandle: 'david.chen.tech',
-        text: 'Thank you for the quick verification on the Herman Miller warranty!',
-        timestamp: '2026-10-30T22:30:00Z',
-        isRead: true,
-      },
-    ],
-  },
-  {
-    id: 'conv-4',
-    customerName: 'Jordan Sparks',
-    customerHandle: '@desksetupdaily',
-    channel: 'tiktok',
-    lastMessage: 'Dropped a comment on your video review! Buying this setup.',
-    lastUpdated: '4 hours ago',
-    unreadCount: 0,
-    status: 'replied',
-    messages: [
-      {
-        id: 'msg-401',
-        conversationId: 'conv-4',
-        sender: 'customer',
-        channel: 'tiktok',
-        customerName: 'Jordan Sparks',
-        customerHandle: '@desksetupdaily',
-        text: 'Dropped a comment on your video review! Buying this setup. Thanks for the direct link!',
-        timestamp: '2026-10-30T20:40:00Z',
-        isRead: true,
-      },
-      {
-        id: 'msg-402',
-        sender: 'admin',
-        conversationId: 'conv-4',
-        channel: 'tiktok',
-        customerName: 'Admin Support',
-        text: 'Awesome to hear Jordan! Enjoy the setup and tag us when it arrives!',
-        timestamp: '2026-10-30T20:55:00Z',
-        isRead: true,
-      },
-    ],
-  },
-  {
-    id: 'conv-5',
-    customerName: 'Kavita Patel',
-    customerHandle: '@kavita_p_dev',
-    channel: 'twitter',
-    lastMessage: 'Are the XM5 headphones comfortable with glasses for 8+ hours?',
-    lastUpdated: '5 hours ago',
-    unreadCount: 1,
-    status: 'open',
-    productId: 'prod-2',
-    productTitle: 'Sony WH-1000XM5 Premium Noise Canceling Wireless Headphones',
-    messages: [
-      {
-        id: 'msg-501',
-        conversationId: 'conv-5',
-        sender: 'customer',
-        channel: 'twitter',
-        customerName: 'Kavita Patel',
-        customerHandle: '@kavita_p_dev',
-        text: 'Saw your Sony XM5 feature. Are the XM5 headphones comfortable with glasses for 8+ hours?',
-        timestamp: '2026-10-30T19:10:00Z',
-        isRead: false,
-        productId: 'prod-2',
-      },
-    ],
-  },
-  {
-    id: 'conv-6',
-    customerName: 'Guest Visitor #4891',
-    customerHandle: 'Web Session',
-    channel: 'website',
-    lastMessage: 'Can I connect two laptops to the Samsung Odyssey Neo G9 simultaneously?',
-    lastUpdated: 'Just now',
-    unreadCount: 1,
-    status: 'open',
-    productId: 'prod-1',
-    productTitle: 'Samsung Odyssey Neo G9 49" Curved Dual QHD Gaming Monitor',
-    messages: [
-      {
-        id: 'msg-601',
-        conversationId: 'conv-6',
-        sender: 'customer',
-        channel: 'website',
-        customerName: 'Guest Visitor #4891',
-        customerHandle: 'Web Session',
-        text: 'Can I connect two laptops to the Samsung Odyssey Neo G9 simultaneously using Picture-by-Picture mode?',
-        timestamp: '2026-10-31T00:38:00Z',
-        isRead: false,
-        productId: 'prod-1',
-      },
-    ],
-  },
-];
-
 class StoreService {
   private products: Product[] = [];
   private clicks: OutboundClick[] = [];
   private visitors: VisitorLog[] = [];
-  private conversations: Conversation[] = [];
   private listeners: (() => void)[] = [];
   private productsReady = false;
   private adminUsername = '';
@@ -708,20 +506,11 @@ class StoreService {
         this.saveClicks();
       }
 
-      // Conversations
-      const savedConvs = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-      if (savedConvs) {
-        this.conversations = JSON.parse(savedConvs);
-      } else {
-        this.conversations = INITIAL_CONVERSATIONS;
-        this.saveConversations();
-      }
     } catch {
       this.products = INITIAL_PRODUCTS;
       const { visitors, clicks } = generateHistoricalData();
       this.visitors = visitors;
       this.clicks = clicks;
-      this.conversations = INITIAL_CONVERSATIONS;
     }
 
     this.recordVisitorSession();
@@ -971,137 +760,6 @@ class StoreService {
     return clickRecord;
   }
 
-  // --- OmniChannel Chat System ---
-  public getConversations(): Conversation[] {
-    return [...this.conversations];
-  }
-
-  public getConversationById(id: string): Conversation | undefined {
-    return this.conversations.find(c => c.id === id);
-  }
-
-  public sendCustomerMessage(
-    channel: SocialChannel,
-    customerName: string,
-    customerHandle: string,
-    text: string,
-    productId?: string,
-    productTitle?: string
-  ): { conversation: Conversation; message: ChatMessage } {
-    let conv = this.conversations.find(c => c.channel === channel && c.customerHandle === customerHandle);
-
-    const now = new Date().toISOString();
-    const msgId = `msg_${Date.now()}`;
-
-    const newMsg: ChatMessage = {
-      id: msgId,
-      conversationId: conv ? conv.id : `conv_${Date.now()}`,
-      sender: 'customer',
-      channel,
-      customerName,
-      customerHandle,
-      text,
-      timestamp: now,
-      isRead: false,
-      productId,
-      productTitle,
-    };
-
-    if (conv) {
-      conv.messages.push(newMsg);
-      conv.lastMessage = text;
-      conv.lastUpdated = 'Just now';
-      conv.unreadCount += 1;
-      conv.status = 'open';
-      if (productId) {
-        conv.productId = productId;
-        conv.productTitle = productTitle;
-      }
-    } else {
-      conv = {
-        id: newMsg.conversationId,
-        customerName,
-        customerHandle,
-        channel,
-        lastMessage: text,
-        lastUpdated: 'Just now',
-        unreadCount: 1,
-        status: 'open',
-        productId,
-        productTitle,
-        messages: [newMsg],
-      };
-      this.conversations.unshift(conv);
-    }
-
-    this.saveConversations();
-    this.notify();
-    return { conversation: conv, message: newMsg };
-  }
-
-  public receiveExternalWebhook(payload: {
-    channel?: SocialChannel;
-    customerName?: string;
-    customerHandle?: string;
-    text?: string;
-    message?: string;
-    sender?: string;
-    phone?: string;
-  }) {
-    const channel: SocialChannel = payload.channel || 'whatsapp';
-    const customerName = payload.customerName || payload.sender || 'Customer';
-    const customerHandle = payload.customerHandle || payload.phone || (channel === 'whatsapp' ? '+880 1712-345678' : '@customer_dm');
-    const text = payload.text || payload.message || 'Hello! I am inquiring about a product from your Facebook/WhatsApp page.';
-
-    return this.sendCustomerMessage(channel, customerName, customerHandle, text);
-  }
-
-  public sendAdminReply(conversationId: string, text: string): ChatMessage | null {
-    const conv = this.conversations.find(c => c.id === conversationId);
-    if (!conv) return null;
-
-    const now = new Date().toISOString();
-    const reply: ChatMessage = {
-      id: `msg_adm_${Date.now()}`,
-      conversationId,
-      sender: 'admin',
-      channel: conv.channel,
-      customerName: 'AuraGear Support',
-      text,
-      timestamp: now,
-      isRead: true,
-    };
-
-    conv.messages.push(reply);
-    conv.lastMessage = `You: ${text}`;
-    conv.lastUpdated = 'Just now';
-    conv.unreadCount = 0;
-    conv.status = 'replied';
-
-    this.saveConversations();
-    this.notify();
-    return reply;
-  }
-
-  public markConversationRead(conversationId: string) {
-    const conv = this.conversations.find(c => c.id === conversationId);
-    if (conv) {
-      conv.unreadCount = 0;
-      conv.messages.forEach(m => (m.isRead = true));
-      this.saveConversations();
-      this.notify();
-    }
-  }
-
-  public updateConversationStatus(conversationId: string, status: 'open' | 'replied' | 'archived') {
-    const conv = this.conversations.find(c => c.id === conversationId);
-    if (conv) {
-      conv.status = status;
-      this.saveConversations();
-      this.notify();
-    }
-  }
-
   // --- Analytics & Visitor Queries with Filters ---
   public getAnalytics(filterPeriod: 'today' | '7days' | 'this_month' | '30days' | 'yearly' | 'all') {
     const now = new Date();
@@ -1202,20 +860,20 @@ class StoreService {
   }
 
   public async verifyAdminSession(): Promise<void> {
-    const session = await verifyChatAdminSession();
+    const session = await verifyAdminSession();
     this.adminUsername = session?.username || '';
     this.notify();
   }
 
   public async loginAdmin(username: string, pass: string): Promise<boolean> {
-    const session = await loginChatAdmin(username.trim(), pass);
+    const session = await loginAdminRequest(username.trim(), pass);
     this.adminUsername = session.username;
     this.notify();
     return true;
   }
 
   public async logoutAdmin(): Promise<void> {
-    await logoutChatAdmin();
+    await logoutAdminRequest();
     this.adminUsername = '';
     this.notify();
   }
@@ -1371,8 +1029,6 @@ class StoreService {
       const savedVisitors = localStorage.getItem(STORAGE_KEYS.VISITORS);
       if (savedVisitors) this.visitors = JSON.parse(savedVisitors);
 
-      const savedConvs = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-      if (savedConvs) this.conversations = JSON.parse(savedConvs);
     } catch {}
   }
 
@@ -1418,19 +1074,10 @@ class StoreService {
     }
   }
 
-  private saveConversations() {
-    try {
-      localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(this.conversations));
-    } catch (e) {
-      console.warn('LocalStorage save failed', e);
-    }
-  }
-
   public resetToDefaults() {
     localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
     localStorage.removeItem(STORAGE_KEYS.CLICKS);
     localStorage.removeItem(STORAGE_KEYS.VISITORS);
-    localStorage.removeItem(STORAGE_KEYS.CONVERSATIONS);
     this.init();
     this.notify();
   }
