@@ -3,9 +3,10 @@ import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
-import chatApi from './api/chat';
-import siteSettingsApi from './api/site-settings';
-import { ChatApiError, ChatRequest, sendJson } from './server/chat';
+import chatApi from './api/chat.js';
+import siteSettingsApi from './api/site-settings.js';
+import { ChatApiError, sendJson } from './server/chat.js';
+import type { ChatRequest } from './server/chat.js';
 
 const serverEnvironmentKeys = [
   'CHAT_ADMIN_USERNAME',

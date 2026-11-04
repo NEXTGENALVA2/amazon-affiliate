@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ServerResponse } from 'node:http';
-import { ChatAttachment, ChatMessage, Conversation } from '../src/types';
+import type { ChatAttachment, ChatMessage, Conversation } from '../src/types.js';
 import {
   assertSameOrigin,
   ChatApiError,
@@ -15,7 +15,7 @@ import {
   sendJson,
   validateVisitorId,
   verifyAdminCredentials,
-} from '../server/chat';
+} from '../server/chat.js';
 
 const CHAT_BUCKET = 'chat-attachments';
 const MAX_ATTACHMENTS = 4;

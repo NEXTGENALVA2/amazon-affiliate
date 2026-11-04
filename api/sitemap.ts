@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { createClient } from '@supabase/supabase-js';
-import { getSiteOrigin } from './siteOrigin';
+import { getSiteOrigin } from './siteOrigin.js';
 
 const products = [
   ['natures-harvest-grain-free-salmon-cat-food', 'prod-cat-food'],

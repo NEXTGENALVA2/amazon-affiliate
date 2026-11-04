@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { SocialChannel, SocialSettings } from '../src/types';
+import type { SocialChannel, SocialSettings } from '../src/types.js';
 import {
   assertSameOrigin,
   ChatApiError,
@@ -8,7 +8,7 @@ import {
   readRequestBody,
   requireAdmin,
   sendJson,
-} from '../server/chat';
+} from '../server/chat.js';
 
 const SETTING_ID = 'social';
 const SOCIAL_CHANNELS = new Set<SocialChannel>([

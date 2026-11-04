@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
-import { getSiteOrigin } from './siteOrigin';
+import { getSiteOrigin } from './siteOrigin.js';
 
 export default function handler(request: IncomingMessage, response: ServerResponse) {
   try {
