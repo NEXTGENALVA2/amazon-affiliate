@@ -26,7 +26,7 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { BuyerComparisonTable } from './components/BuyerComparisonTable';
-import { formatCurrency } from './utils/helpers';
+import { formatCurrency, getYouTubeEmbedUrl } from './utils/helpers';
 import { pixelService } from './services/pixelService';
 import { findProductByRouteSlug, getProductPath, getProductRouteSlug } from './utils/productRoutes';
 
@@ -578,7 +578,7 @@ export default function App() {
             </div>
 
             {committedSearchResults.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 2xl:grid-cols-4">
                 {committedSearchResults.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -880,7 +880,7 @@ export default function App() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -934,13 +934,24 @@ export default function App() {
                     videoReviewProducts.length === 1 ? 'mx-auto max-w-2xl' : ''
                   }`}
                 >
-                  <div className="relative aspect-video min-h-0 bg-slate-950 overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-full h-full object-contain p-1 sm:p-2"
-                      referrerPolicy="no-referrer"
-                    />
+                  <div className="relative mx-auto aspect-[9/16] w-full max-w-sm bg-slate-950 overflow-hidden">
+                    {item.videoType === 'youtube' && getYouTubeEmbedUrl(item.videoUrl || '') ? (
+                      <iframe
+                        src={`${getYouTubeEmbedUrl(item.videoUrl || '')}?controls=0&modestbranding=1&rel=0`}
+                        title={`Video review for ${item.title}`}
+                        className="pointer-events-none absolute inset-0 h-full w-full border-0"
+                        loading="lazy"
+                        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                      />
+                    ) : (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="h-full w-full object-contain p-1 sm:p-2"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-slate-950/40 group-hover:bg-slate-950/20 transition-colors flex items-center justify-center">
                       <div className="w-12 h-12 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                         <Play className="w-5 h-5 fill-slate-950 ml-0.5" />

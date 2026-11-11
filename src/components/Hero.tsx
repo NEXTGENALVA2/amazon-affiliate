@@ -12,7 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Product } from '../types';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
 
 interface HeroProps {
   selectedCategory: string;
@@ -48,6 +48,7 @@ export const Hero: React.FC<HeroProps> = ({
   const discountPercent = Math.round(
     ((spotlight.price - spotlight.dealPrice) / spotlight.price) * 100
   );
+  const youtubeEmbedUrl = spotlight.videoUrl ? getYouTubeEmbedUrl(spotlight.videoUrl) : null;
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 text-white border-b border-slate-800">
@@ -138,13 +139,24 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
 
               {/* Product Media */}
-              <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-950 border border-white/10 group">
-                <img
-                  src={spotlight.image}
-                  alt={spotlight.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="relative mx-auto aspect-[9/16] w-full max-w-sm rounded-xl overflow-hidden bg-slate-950 border border-white/10 group">
+                {youtubeEmbedUrl ? (
+                  <iframe
+                    src={`${youtubeEmbedUrl}?controls=0&modestbranding=1&rel=0`}
+                    title={`Video review for ${spotlight.title}`}
+                    className="pointer-events-none absolute inset-0 h-full w-full border-0"
+                    loading="lazy"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  />
+                ) : (
+                  <img
+                    src={spotlight.image}
+                    alt={spotlight.title}
+                    className="h-full w-full object-contain"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent flex items-end p-4">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-slate-950/80 px-2 py-0.5 rounded">

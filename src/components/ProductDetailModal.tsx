@@ -149,7 +149,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <div className="order-2 space-y-3 md:order-none md:col-span-7">
             {/* Main Stage */}
             <div
-              className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-2 sm:p-4 touch-pan-y"
+              className={`relative w-full rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center touch-pan-y ${
+                activeMedia === 'video'
+                  ? 'mx-auto aspect-[9/16] max-w-[400px] bg-black'
+                  : 'aspect-[4/3] bg-white p-2 sm:p-4'
+              }`}
               onTouchStart={(e) => {
                 const touch = e.touches[0];
                 touchStart.current = { x: touch.clientX, y: touch.clientY };
