@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import adminAuthApi from './api/admin-auth.js';
+import productPreviewApi from './api/product-preview.js';
 import siteSettingsApi from './api/site-settings.js';
 import { AdminApiError, sendAdminJson } from './server/admin-auth.js';
 import type { AdminRequest } from './server/admin-auth.js';
@@ -51,7 +52,11 @@ export default defineConfig(({ mode }) => {
             next: (error?: Error) => void
           ) => {
             const pathname = new URL(request.url || '/', 'http://localhost').pathname;
-            const handler = pathname === '/api/admin-auth'
+            const userAgent = request.headers['user-agent'] || '';
+            const isSocialCrawler = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Google-InspectionTool|facebookcatalog|Viber|VKShare|Tumblr|Snapchat|Mastodon/.test(userAgent);
+            const handler = pathname.startsWith('/products/') && isSocialCrawler
+              ? productPreviewApi
+              : pathname === '/api/admin-auth'
               ? adminAuthApi
               : pathname === '/api/site-settings'
                 ? siteSettingsApi

@@ -182,6 +182,14 @@ export default function App() {
   const isProductPage = productRouteSlug !== null;
 
   useEffect(() => {
+    if (!routeProduct) return;
+    const canonicalPath = getProductPath(routeProduct);
+    if (window.location.pathname !== canonicalPath) {
+      window.history.replaceState(window.history.state, '', canonicalPath);
+    }
+  }, [routeProduct]);
+
+  useEffect(() => {
     const origin = window.location.origin;
     const pageUrl = new URL(window.location.pathname, origin).href;
     let title = 'Kefayaan | Curated Amazon US Product Deals & Reviews';

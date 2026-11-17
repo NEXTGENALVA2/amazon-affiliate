@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, ExternalLink, Star, Play, CheckCircle2, ShieldCheck, Truck, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
+import { getProductPath } from '../utils/productRoutes';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -68,7 +69,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const selectedImage = allImages[activeImageIndex] || product.image;
   const handleShare = async () => {
-    const url = window.location.href;
+    const url = new URL(getProductPath(product), window.location.origin).href;
     if (navigator.share) {
       try {
         await navigator.share({ title: product.title, text: product.description, url });

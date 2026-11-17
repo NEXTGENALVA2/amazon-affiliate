@@ -1,25 +1,23 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { createClient } from '@supabase/supabase-js';
 import { getSiteOrigin } from './siteOrigin.js';
+import { slugifyProductTitle } from '../src/utils/productRoutes.js';
 
 const products = [
-  ['natures-harvest-grain-free-salmon-cat-food', 'prod-cat-food'],
-  ['optimum-nutrition-gold-standard-whey-protein', 'prod-gym-protein'],
-  ['ninja-foodi-xl-dualzone-smart-air-fryer', 'prod-kitchen-airfryer'],
-  ['samsung-odyssey-neo-g9', 'prod-1'],
-  ['sony-wh-1000xm5-wireless', 'prod-2'],
-  ['keychron-q1-pro-mechanical', 'prod-3'],
-  ['herman-miller-aeron-chair', 'prod-4'],
+  ["Nature's Harvest Grain-Free Wild Salmon & Organic Chicken Wet Cat Food (24 Cans)", 'prod-cat-food'],
+  ['Optimum Nutrition Gold Standard 100% Whey Protein Isolate (5 lbs, Vanilla Bean)', 'prod-gym-protein'],
+  ['Ninja Foodi XL DualZone 10-Qt 2-Basket Digital Smart Air Fryer with Match Cook', 'prod-kitchen-airfryer'],
+  ['Samsung Odyssey Neo G9 49" Curved Dual QHD 240Hz Mini-LED Gaming Monitor', 'prod-1'],
+  ['Sony WH-1000XM5 Premium Noise Canceling Wireless Headphones', 'prod-2'],
+  ['Keychron Q1 Pro Wireless Custom Mechanical Keyboard (QMK/VIA)', 'prod-3'],
+  ['Herman Miller Aeron Ergonomic Chair - Graphite Mineral Polished', 'prod-4'],
 ];
-
-const slugify = (value: string): string =>
-  value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product';
 
 const getProductUrls = async (origin: string): Promise<string[]> => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
-    return products.map(([slug, id]) => `${origin}/products/${slug}-${encodeURIComponent(id)}`);
+    return products.map(([title]) => `${origin}/products/${slugifyProductTitle(title)}`);
   }
 
   const client = createClient(supabaseUrl, supabaseAnonKey);
@@ -32,14 +30,13 @@ const getProductUrls = async (origin: string): Promise<string[]> => {
       Boolean(product) &&
       typeof product === 'object' &&
       typeof product.id === 'string' &&
-      (typeof product.slug === 'string' || typeof product.title === 'string'));
+      typeof product.title === 'string');
 
   const urls = records.map((product) => {
-    const slug = slugify(product.slug || product.title || 'product');
-    return `${origin}/products/${slug}-${encodeURIComponent(product.id)}`;
+    return `${origin}/products/${slugifyProductTitle(product.title || product.slug || 'product')}`;
   });
   return [...new Set([
-    ...products.map(([slug, id]) => `${origin}/products/${slug}-${encodeURIComponent(id)}`),
+    ...products.map(([title]) => `${origin}/products/${slugifyProductTitle(title)}`),
     ...urls,
   ])];
 };
