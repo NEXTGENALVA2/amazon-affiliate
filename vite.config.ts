@@ -5,6 +5,7 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import adminAuthApi from './api/admin-auth.js';
 import productPreviewApi from './api/product-preview.js';
+import productPreviewImageApi from './api/product-preview-image.js';
 import siteSettingsApi from './api/site-settings.js';
 import { AdminApiError, sendAdminJson } from './server/admin-auth.js';
 import type { AdminRequest } from './server/admin-auth.js';
@@ -19,6 +20,7 @@ const serverEnvironmentKeys = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'VITE_SUPABASE_URL',
+  'VITE_SUPABASE_ANON_KEY',
 ];
 
 export default defineConfig(({ mode }) => {
@@ -56,6 +58,8 @@ export default defineConfig(({ mode }) => {
             const isSocialCrawler = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Google-InspectionTool|facebookcatalog|Viber|VKShare|Tumblr|Snapchat|Mastodon/.test(userAgent);
             const handler = pathname.startsWith('/products/') && isSocialCrawler
               ? productPreviewApi
+              : pathname === '/api/product-preview-image'
+                ? productPreviewImageApi
               : pathname === '/api/admin-auth'
               ? adminAuthApi
               : pathname === '/api/site-settings'
