@@ -47,6 +47,42 @@ const getProducts = async (): Promise<Product[]> => {
     .filter(isProduct);
 };
 
+const getShareImage = async (image: string, origin: string): Promise<{ url: string; optimized: boolean }> => {
+  const imageUrl = new URL(image, origin);
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) return { url: imageUrl.href, optimized: false };
+
+  const projectUrl = new URL(supabaseUrl);
+  const objectPath = '/storage/v1/object/public/';
+  if (imageUrl.origin !== projectUrl.origin || !imageUrl.pathname.includes(objectPath)) {
+    return { url: imageUrl.href, optimized: false };
+  }
+
+  imageUrl.pathname = imageUrl.pathname.replace(objectPath, '/storage/v1/render/image/public/');
+  imageUrl.search = '';
+  imageUrl.searchParams.set('width', '1200');
+  imageUrl.searchParams.set('height', '630');
+  imageUrl.searchParams.set('resize', 'contain');
+  imageUrl.searchParams.set('quality', '90');
+  imageUrl.searchParams.set('format', 'origin');
+  try {
+    const response = await fetch(imageUrl.href, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(3000),
+    });
+    const contentType = response.headers.get('content-type') || '';
+    if (response.ok && contentType.startsWith('image/')) {
+      return { url: imageUrl.href, optimized: true };
+    }
+    console.warn(`Supabase image transformation is unavailable (${response.status}); using the original product image.`);
+  } catch (error) {
+    console.warn('Could not verify the transformed product image; using the original image.', error);
+  }
+  imageUrl.pathname = imageUrl.pathname.replace('/storage/v1/render/image/public/', '/storage/v1/object/public/');
+  imageUrl.search = '';
+  return { url: imageUrl.href, optimized: false };
+};
+
 const sendHtml = (response: ServerResponse, status: number, html: string): void => {
   response.statusCode = status;
   response.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -81,9 +117,14 @@ export default async function handler(request: IncomingMessage, response: Server
     const description = product.description?.trim().slice(0, 300) ||
       `Explore ${product.title}, including product details, pricing, images, and buying options on Kefayaan.`;
     let imageUrl = new URL('/assets/aistudio/DP_af5fa802.png', origin).href;
+    let hasOptimizedImage = false;
     try {
-      const candidate = new URL(product.image, origin);
-      if (candidate.protocol === 'http:' || candidate.protocol === 'https:') imageUrl = candidate.href;
+      const candidate = await getShareImage(product.image, origin);
+      const candidateUrl = new URL(candidate.url);
+      if (candidateUrl.protocol === 'http:' || candidateUrl.protocol === 'https:') {
+        imageUrl = candidateUrl.href;
+        hasOptimizedImage = candidate.optimized;
+      }
     } catch (error) {
       console.warn('Product preview image URL is invalid', error);
     }
@@ -109,6 +150,9 @@ export default async function handler(request: IncomingMessage, response: Server
     const escapedDescription = escapeHtml(description);
     const escapedImage = escapeHtml(imageUrl);
     const escapedUrl = escapeHtml(canonicalUrl);
+    const imageDimensions = hasOptimizedImage
+      ? '<meta property="og:image:width" content="1200">\n    <meta property="og:image:height" content="630">'
+      : '';
     const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -124,6 +168,7 @@ export default async function handler(request: IncomingMessage, response: Server
     <meta property="og:description" content="${escapedDescription}">
     <meta property="og:url" content="${escapedUrl}">
     <meta property="og:image" content="${escapedImage}">
+    ${imageDimensions}
     <meta property="og:image:alt" content="${escapeHtml(product.title)}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapedTitle}">
