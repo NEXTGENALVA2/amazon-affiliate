@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import adminAuthApi from './api/admin-auth.js';
+import blogPreviewApi from './api/blog-preview.js';
 import productPreviewApi from './api/product-preview.js';
 import productPreviewImageApi from './api/product-preview-image.js';
 import siteSettingsApi from './api/site-settings.js';
@@ -55,9 +56,11 @@ export default defineConfig(({ mode }) => {
           ) => {
             const pathname = new URL(request.url || '/', 'http://localhost').pathname;
             const userAgent = request.headers['user-agent'] || '';
-            const isSocialCrawler = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Google-InspectionTool|facebookcatalog|Viber|VKShare|Tumblr|Snapchat|Mastodon/.test(userAgent);
+            const isSocialCrawler = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Googlebot|bingbot|Google-InspectionTool|facebookcatalog|Viber|VKShare|Tumblr|Snapchat|Mastodon/.test(userAgent);
             const handler = pathname.startsWith('/products/') && isSocialCrawler
               ? productPreviewApi
+              : (pathname === '/blog' || pathname.startsWith('/blog/')) && isSocialCrawler
+                ? blogPreviewApi
               : pathname === '/api/product-preview-image'
                 ? productPreviewImageApi
               : pathname === '/api/admin-auth'

@@ -109,6 +109,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             Video Lab
           </button>
+          <a href="/blog" className="hover:text-slate-950 transition-colors whitespace-nowrap shrink-0">
+            Buying Guides
+          </a>
           <button
             onClick={onOpenSocialHub}
             className="hover:text-slate-950 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
@@ -212,6 +215,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 🎥 Video Lab Reviews
               </button>
+              <a
+                href="/blog"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full py-2.5 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+              >
+                Buying Guides
+              </a>
               <button
                 onClick={() => {
                   onOpenSocialHub();

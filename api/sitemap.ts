@@ -2,6 +2,7 @@ import { IncomingMessage, ServerResponse } from 'node:http';
 import { createClient } from '@supabase/supabase-js';
 import { getSiteOrigin } from './siteOrigin.js';
 import { slugifyProductTitle } from '../src/utils/productRoutes.js';
+import { BLOG_ARTICLES } from '../src/data/blog.js';
 
 const products = [
   ["Nature's Harvest Grain-Free Wild Salmon & Organic Chicken Wet Cat Food (24 Cans)", 'prod-cat-food'],
@@ -46,6 +47,8 @@ export default async function handler(request: IncomingMessage, response: Server
     const origin = getSiteOrigin(request);
     const urls = [
       `${origin}/`,
+      `${origin}/blog`,
+      ...BLOG_ARTICLES.map((article) => `${origin}/blog/${article.slug}`),
       ...await getProductUrls(origin),
     ];
     const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `  <url><loc>${url}</loc></url>`).join('\n')}\n</urlset>`;

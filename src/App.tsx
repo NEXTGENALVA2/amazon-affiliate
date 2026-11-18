@@ -23,12 +23,14 @@ import { Hero } from './components/Hero';
 import { ProductCard } from './components/ProductCard';
 import { ProductSearchBar } from './components/ProductSearchBar';
 import { ProductDetailModal } from './components/ProductDetailModal';
+import { BlogPage } from './components/BlogPage';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { BuyerComparisonTable } from './components/BuyerComparisonTable';
 import { formatCurrency, getYouTubeEmbedUrl } from './utils/helpers';
 import { pixelService } from './services/pixelService';
 import { findProductByRouteSlug, getProductPath, getProductRouteSlug } from './utils/productRoutes';
+import { BLOG_ARTICLES, getBlogArticle } from './data/blog';
 
 const setMetaContent = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
   let element = document.head.querySelector<HTMLMetaElement>(selector);
@@ -180,6 +182,17 @@ export default function App() {
   const productRouteSlug = getProductRouteSlug(window.location.pathname);
   const routeProduct = productRouteSlug ? findProductByRouteSlug(products, productRouteSlug) : undefined;
   const isProductPage = productRouteSlug !== null;
+  const blogRouteMatch = window.location.pathname.match(/^\/blog(?:\/([^/]+))?\/?$/);
+  let blogSlug: string | null = null;
+  if (blogRouteMatch?.[1]) {
+    try {
+      blogSlug = decodeURIComponent(blogRouteMatch[1]);
+    } catch {
+      blogSlug = blogRouteMatch[1];
+    }
+  }
+  const isBlogPage = Boolean(blogRouteMatch);
+  const blogArticle = blogSlug ? getBlogArticle(blogSlug) : undefined;
 
   useEffect(() => {
     if (!routeProduct) return;
@@ -208,7 +221,40 @@ export default function App() {
       },
     };
 
-    if (isProductPage) {
+    if (isBlogPage) {
+      const blogUrl = blogSlug ? `${origin}/blog/${blogSlug}` : `${origin}/blog`;
+      const blogTitle = blogArticle ? `${blogArticle.title} | Kefayaan` : 'Kefayaan Buying Guides';
+      const blogDescription = blogArticle?.description ||
+        'Practical buying guides and checklists for comparing products, features, fit, and purchase terms.';
+      title = blogTitle;
+      description = blogDescription;
+      robots = blogSlug && !blogArticle ? 'noindex,follow' : 'index,follow';
+      structuredData = blogArticle ? {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: blogArticle.title,
+        description: blogArticle.description,
+        datePublished: blogArticle.publishedAt,
+        dateModified: blogArticle.publishedAt,
+        author: { '@type': 'Organization', name: 'Kefayaan Editorial Team' },
+        publisher: { '@type': 'Organization', name: 'Kefayaan', url: `${origin}/` },
+        mainEntityOfPage: blogUrl,
+      } : {
+        '@context': 'https://schema.org',
+        '@type': 'Blog',
+        name: 'Kefayaan Buying Guides',
+        url: blogUrl,
+        blogPost: BLOG_ARTICLES.map((article) => ({
+          '@type': 'BlogPosting',
+          headline: article.title,
+          url: `${origin}/blog/${article.slug}`,
+          datePublished: article.publishedAt,
+        })),
+      };
+      setCanonicalUrl(blogUrl);
+    }
+
+    if (!isBlogPage && isProductPage) {
       robots = routeProduct ? 'index,follow' : 'noindex,follow';
       title = routeProduct ? `${routeProduct.title} | Kefayaan` : 'Product | Kefayaan';
       description = routeProduct?.description?.trim().slice(0, 300) ||
@@ -244,7 +290,7 @@ export default function App() {
             : 'https://schema.org/OutOfStock',
         },
       } : null;
-    } else if (activeSearchQuery !== null) {
+    } else if (!isBlogPage && activeSearchQuery !== null) {
       title = `Search results for ${activeSearchQuery || 'products'} | Kefayaan`;
       description = activeSearchQuery
         ? `Products matching "${activeSearchQuery}" in the Kefayaan Amazon US storefront.`
@@ -258,13 +304,13 @@ export default function App() {
     setMetaContent('meta[name="robots"]', 'name', 'robots', robots);
     setMetaContent('meta[property="og:title"]', 'property', 'og:title', title);
     setMetaContent('meta[property="og:description"]', 'property', 'og:description', description);
-    setMetaContent('meta[property="og:type"]', 'property', 'og:type', routeProduct ? 'product' : 'website');
-    setMetaContent('meta[property="og:url"]', 'property', 'og:url', pageUrl);
+    setMetaContent('meta[property="og:type"]', 'property', 'og:type', isBlogPage && blogArticle ? 'article' : routeProduct ? 'product' : 'website');
+    setMetaContent('meta[property="og:url"]', 'property', 'og:url', isBlogPage ? `${origin}${blogSlug ? `/blog/${blogSlug}` : '/blog'}` : pageUrl);
     setMetaContent('meta[property="og:image"]', 'property', 'og:image', image ? new URL(image, origin).href : '');
     setMetaContent('meta[name="twitter:title"]', 'name', 'twitter:title', title);
     setMetaContent('meta[name="twitter:description"]', 'name', 'twitter:description', description);
     setMetaContent('meta[name="twitter:image"]', 'name', 'twitter:image', image ? new URL(image, origin).href : '');
-    setCanonicalUrl(pageUrl);
+    if (!isBlogPage) setCanonicalUrl(pageUrl);
 
     let script = document.getElementById('page-structured-data');
     if (structuredData) {
@@ -278,7 +324,7 @@ export default function App() {
     } else {
       script?.remove();
     }
-  }, [activeSearchQuery, isProductPage, routeProduct]);
+  }, [activeSearchQuery, blogArticle, blogSlug, isBlogPage, isProductPage, routeProduct]);
 
   const handleSearchSubmit = (value: string) => {
     const query = value.trim();
@@ -424,6 +470,10 @@ export default function App() {
         }}
       />
     );
+  }
+
+  if (isBlogPage) {
+    return <BlogPage slug={blogSlug} products={products} />;
   }
 
   // Key Pillars for US Trending Spotlight
@@ -1089,6 +1139,9 @@ export default function App() {
               >
                 Video Lab
               </button>
+              <a href="/blog" className="hover:text-slate-950">
+                Buying Guides
+              </a>
               {isAdminLoggedIn ? (
                 <button
                   onClick={() => setCurrentView('admin')}
