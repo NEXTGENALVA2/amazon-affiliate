@@ -688,6 +688,7 @@ class StoreService {
         description: product.description || '',
         badge: product.badge || '',
         isBestSeller: product.isBestSeller === true,
+        productButtonLabel: product.productButtonLabel?.trim() || undefined,
         inStock: product.inStock !== undefined ? product.inStock : true,
         clicksCount: 0,
         viewsCount: 0,

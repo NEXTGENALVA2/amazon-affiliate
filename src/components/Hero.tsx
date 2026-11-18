@@ -193,7 +193,7 @@ export const Hero: React.FC<HeroProps> = ({
                     onClick={(e) => onBuyFeatured(spotlight, e)}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-transform hover:scale-102 cursor-pointer active:scale-95"
                   >
-                    <span>{purchaseButtonLabel}</span>
+                    <span>{spotlight.productButtonLabel?.trim() || purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>

@@ -90,6 +90,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   // Badges & Ratings
   const [badge, setBadge] = useState('');
   const [isBestSeller, setIsBestSeller] = useState(false);
+  const [productButtonLabel, setProductButtonLabel] = useState('');
   const [rating, setRating] = useState('');
   const [reviewCount, setReviewCount] = useState('');
   const [description, setDescription] = useState('');
@@ -154,6 +155,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setVideoUrl(productToEdit.videoUrl || '');
       setBadge(productToEdit.badge || '');
       setIsBestSeller(productToEdit.isBestSeller === true);
+      setProductButtonLabel(productToEdit.productButtonLabel || '');
       setRating(productToEdit.rating > 0 ? productToEdit.rating.toString() : '');
       setReviewCount(productToEdit.reviewCount > 0 ? productToEdit.reviewCount.toString() : '');
       setDescription(productToEdit.description || '');
@@ -177,6 +179,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setVideoUrl('https://www.youtube.com/watch?v=kYJv6uS8Vnk');
       setBadge('');
       setIsBestSeller(false);
+      setProductButtonLabel('');
       setRating('');
       setReviewCount('');
       setDescription('');
@@ -491,6 +494,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       videoUrl: videoUrl.trim(),
       badge,
       isBestSeller,
+      productButtonLabel: productButtonLabel.trim(),
       rating: !isNaN(parsedRating) && parsedRating > 0 ? Math.min(5, Math.max(1, parsedRating)) : 0,
       reviewCount: !isNaN(parsedReviewCount) ? Math.max(0, parsedReviewCount) : 0,
       description: description.trim(),
@@ -833,6 +837,20 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                 </div>
                 <p className="text-[10px] leading-4 text-slate-500">
                   Store-wide button label: <strong>{storeSettings.purchaseButtonLabel}</strong>. Change it in Admin &gt; Store &amp; Links &gt; Retailer &amp; Button Settings.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">This Product's Button Label</label>
+                <input
+                  type="text"
+                  maxLength={40}
+                  value={productButtonLabel}
+                  onChange={(event) => setProductButtonLabel(event.target.value)}
+                  placeholder={storeSettings.purchaseButtonLabel}
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none"
+                />
+                <p className="text-[10px] leading-4 text-slate-500">
+                  Optional; leave blank to use the store-wide label.
                 </p>
               </div>
 

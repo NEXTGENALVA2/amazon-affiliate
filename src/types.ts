@@ -52,6 +52,7 @@ export interface Product {
   description: string;
   badge?: string;
   isBestSeller?: boolean;
+  productButtonLabel?: string;
   inStock: boolean;
   clicksCount: number;
   viewsCount: number;

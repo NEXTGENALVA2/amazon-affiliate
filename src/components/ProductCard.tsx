@@ -27,6 +27,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const currentPrice = activeVariant?.price !== undefined ? activeVariant.price : product.price;
   const currentDealPrice = activeVariant?.dealPrice !== undefined ? activeVariant.dealPrice : product.dealPrice;
   const currentRetailerUrl = activeVariant?.amazonUrl || product.amazonUrl;
+  const buttonLabel = product.productButtonLabel?.trim() || purchaseButtonLabel;
   const isAmazonRetailer = retailerName.trim().toLowerCase() === 'amazon';
   const isAmazonSpecificBadge = /amazon|prime/i.test(product.badge || '');
   const isBestSellerBadge = /best seller/i.test(product.badge || '');
@@ -330,7 +331,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               className="w-full min-h-[42px] flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer group/btn"
               title={`Open product page at ${retailerName}`}
             >
-              <span>{purchaseButtonLabel}</span>
+              <span>{buttonLabel}</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-900 group-hover/btn:translate-x-0.5 transition-transform shrink-0" />
             </button>
           </div>

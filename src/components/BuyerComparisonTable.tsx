@@ -76,7 +76,7 @@ export const BuyerComparisonTable: React.FC<BuyerComparisonTableProps> = ({
                     onClick={(event) => onBuyNow(product, event)}
                     className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-amber-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-amber-500"
                   >
-                    {purchaseButtonLabel}
+                    {product.productButtonLabel?.trim() || purchaseButtonLabel}
                     <ExternalLink className="h-3.5 w-3.5" />
                   </button>
                 </td>

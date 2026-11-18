@@ -792,7 +792,7 @@ export default function App() {
                     onClick={(e) => handleBuyNow(catFoodProduct, e)}
                     className="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{storeSettings.purchaseButtonLabel}</span>
+                    <span>{catFoodProduct.productButtonLabel?.trim() || storeSettings.purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -865,7 +865,7 @@ export default function App() {
                     onClick={(e) => handleBuyNow(gymProteinProduct, e)}
                     className="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{storeSettings.purchaseButtonLabel}</span>
+                    <span>{gymProteinProduct.productButtonLabel?.trim() || storeSettings.purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -938,7 +938,7 @@ export default function App() {
                     onClick={(e) => handleBuyNow(kitchenProduct, e)}
                     className="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{storeSettings.purchaseButtonLabel}</span>
+                    <span>{kitchenProduct.productButtonLabel?.trim() || storeSettings.purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>

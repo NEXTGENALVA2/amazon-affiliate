@@ -31,6 +31,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const currentPrice = activeVariant?.price !== undefined ? activeVariant.price : product?.price ?? 0;
   const currentDealPrice = activeVariant?.dealPrice !== undefined ? activeVariant.dealPrice : product?.dealPrice ?? 0;
   const currentRetailerUrl = activeVariant?.amazonUrl || product?.amazonUrl || '';
+  const buttonLabel = product?.productButtonLabel?.trim() || purchaseButtonLabel;
 
   const allImages = useMemo(() => {
     if (!product) return [];
@@ -372,7 +373,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   onClick={() => onBuyNow(product, currentRetailerUrl)}
                   className="w-full flex items-center justify-center gap-2 py-3 px-6 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer group"
                 >
-                  <span>{purchaseButtonLabel}</span>
+                  <span>{buttonLabel}</span>
                   <ExternalLink className="w-4 h-4 text-slate-950 group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
