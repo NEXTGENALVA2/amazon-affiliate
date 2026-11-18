@@ -35,10 +35,11 @@ export default async function handler(request: IncomingMessage, response: Server
     const origin = getSiteOrigin(request);
     const imageUrl = new URL(product.image, origin);
     const allowedOrigins = new Set<string>();
+    allowedOrigins.add(origin);
     if (process.env.VITE_SUPABASE_URL) {
       allowedOrigins.add(new URL(process.env.VITE_SUPABASE_URL).origin);
     }
-    const configuredSiteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VITE_SITE_URL;
+    const configuredSiteUrl = process.env.VITE_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
     if (configuredSiteUrl) {
       allowedOrigins.add(new URL(
         configuredSiteUrl.includes('://') ? configuredSiteUrl : `https://${configuredSiteUrl}`

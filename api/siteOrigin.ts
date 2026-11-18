@@ -1,7 +1,7 @@
 import { IncomingMessage } from 'node:http';
 
 export const getSiteOrigin = (request: IncomingMessage): string => {
-  const configuredUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VITE_SITE_URL;
+  const configuredUrl = process.env.VITE_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
   const forwardedHost = request.headers['x-forwarded-host'];
   const requestHost = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost || request.headers.host;
 

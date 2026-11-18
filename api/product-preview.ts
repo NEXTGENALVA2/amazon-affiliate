@@ -15,10 +15,10 @@ const escapeHtml = (value: string): string =>
 const getShareImage = async (image: string, origin: string, routeSlug: string): Promise<{ url: string; optimized: boolean }> => {
   const imageUrl = new URL(image, origin);
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const configuredSiteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VITE_SITE_URL;
+  const configuredSiteUrl = process.env.VITE_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
   const productPageOrigin = configuredSiteUrl
     ? new URL(configuredSiteUrl.includes('://') ? configuredSiteUrl : `https://${configuredSiteUrl}`).origin
-    : null;
+    : origin;
   const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : null;
   if (imageUrl.origin !== productPageOrigin && imageUrl.origin !== supabaseOrigin) {
     return { url: imageUrl.href, optimized: false };
