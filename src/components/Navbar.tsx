@@ -65,7 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 shadow-xs group-hover:border-amber-400 transition-colors shrink-0">
             <img
-              src={storeSettings.logoUrl || '/assets/aistudio/DP_af5fa802.png'}
+              src={storeSettings.logoUrl || '/assets/brand/kefayaan-logo.jpg'}
               alt={storeSettings.shopName}
               className="w-full h-full object-cover"
               onError={(e) => {

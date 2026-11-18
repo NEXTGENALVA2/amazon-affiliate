@@ -61,9 +61,9 @@ export default async function handler(request: IncomingMessage, response: Server
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDescription}">
     <link rel="canonical" href="${safeCanonicalUrl}">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:type" content="website">
     <meta property="og:title" content="${safeTitle}">

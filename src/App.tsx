@@ -1166,7 +1166,7 @@ export default function App() {
               <div className="flex items-center gap-3 text-base font-extrabold text-slate-950">
                 <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 shrink-0">
                   <img
-                    src="/assets/aistudio/DP_af5fa802.png"
+                    src="/assets/brand/kefayaan-logo.jpg"
                     alt="Kefayaan"
                     className="w-full h-full object-cover"
                   />

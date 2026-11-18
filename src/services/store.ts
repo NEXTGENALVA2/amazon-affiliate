@@ -31,6 +31,8 @@ const CHAIR_IMG = chairImg;
 const CAT_FOOD_IMG = catFoodImg;
 const GYM_PROTEIN_IMG = gymProteinImg;
 const AIR_FRYER_IMG = airFryerImg;
+const DEFAULT_LOGO_URL = '/assets/brand/kefayaan-logo.jpg';
+const LEGACY_LOGO_URL = '/assets/aistudio/DP_af5fa802.png';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'auragear_products_v2',
@@ -48,7 +50,7 @@ const DEFAULT_STORE_SETTINGS: StoreSettings = {
   purchaseButtonLabel: 'Buy on Amazon',
   socialPreviewImageUrl: 'https://www.kefayaan.com/assets/social/kefayaan-share.jpg',
   tagline: 'Curated products and helpful buying guides',
-  logoUrl: '/assets/aistudio/DP_af5fa802.png',
+  logoUrl: DEFAULT_LOGO_URL,
   amazonOfficialStoreUrl: 'https://link.amazon/B0dbjUEFY',
   defaultAffiliateTag: 'kefayaan-20',
   officialStoreClicksCount: 328,
@@ -967,7 +969,11 @@ class StoreService {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.STORE_SETTINGS);
       if (saved) {
-        return { ...DEFAULT_STORE_SETTINGS, ...JSON.parse(saved) };
+        const savedSettings = JSON.parse(saved) as Partial<StoreSettings>;
+        const migratedSettings = savedSettings.logoUrl === LEGACY_LOGO_URL
+          ? { ...savedSettings, logoUrl: DEFAULT_LOGO_URL }
+          : savedSettings;
+        return { ...DEFAULT_STORE_SETTINGS, ...migratedSettings };
       }
     } catch {}
     return { ...DEFAULT_STORE_SETTINGS };

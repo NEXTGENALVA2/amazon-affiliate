@@ -81,7 +81,7 @@ export default async function handler(request: IncomingMessage, response: Server
     const safePrice = Number.isFinite(product.dealPrice) && product.dealPrice > 0
       ? product.dealPrice.toFixed(2)
       : null;
-    let imageUrl = new URL('/assets/aistudio/DP_af5fa802.png', origin).href;
+    let imageUrl = new URL('/assets/brand/kefayaan-logo.jpg', origin).href;
     let hasOptimizedImage = false;
     try {
       const candidate = await getShareImage(product.image, origin, routeSlug);
@@ -145,9 +145,9 @@ export default async function handler(request: IncomingMessage, response: Server
     <meta name="description" content="${escapedDescription}">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapedUrl}">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:type" content="product">
     <meta property="og:title" content="${escapedTitle}">

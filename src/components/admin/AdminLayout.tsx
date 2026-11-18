@@ -58,7 +58,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
               <img
-                src="/assets/aistudio/DP_af5fa802.png"
+                src="/assets/brand/kefayaan-logo.jpg"
                 alt="Kefayaan"
                 className="w-full h-full object-cover"
               />

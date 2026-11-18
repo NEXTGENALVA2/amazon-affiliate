@@ -34,7 +34,7 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string):
       '@type': 'Organization',
       name: 'Kefayaan',
       url: `${origin}/`,
-      logo: { '@type': 'ImageObject', url: `${origin}/assets/aistudio/DP_af5fa802.png` },
+      logo: { '@type': 'ImageObject', url: `${origin}/assets/brand/kefayaan-logo.jpg` },
     },
     mainEntityOfPage: url,
   }).replace(/</g, '\\u003c');
@@ -54,19 +54,19 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string):
     <meta name="description" content="${escapeHtml(description)}">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapeHtml(url)}">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:type" content="article">
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
     <meta property="og:url" content="${escapeHtml(url)}">
-    <meta property="og:image" content="${origin}/assets/aistudio/DP_af5fa802.png">
+    <meta property="og:image" content="${origin}/assets/brand/kefayaan-logo.jpg">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(title)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
-    <meta name="twitter:image" content="${origin}/assets/aistudio/DP_af5fa802.png">
+    <meta name="twitter:image" content="${origin}/assets/brand/kefayaan-logo.jpg">
     <script type="application/ld+json">${jsonLd}</script>
   </head>
   <body>
@@ -106,15 +106,15 @@ const renderIndex = (origin: string): string => {
     <meta name="description" content="${description}">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${url}">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:type" content="website">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:url" content="${url}">
-    <meta property="og:image" content="${origin}/assets/aistudio/DP_af5fa802.png">
+    <meta property="og:image" content="${origin}/assets/brand/kefayaan-logo.jpg">
     <meta name="twitter:card" content="summary_large_image">
   </head>
   <body>
