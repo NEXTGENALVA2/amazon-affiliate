@@ -10,7 +10,12 @@ import {
 } from '../types';
 import { hasSupabase, supabase } from './supabase';
 import { loginAdmin as loginAdminRequest, logoutAdmin as logoutAdminRequest, verifyAdminSession } from './adminAuth';
-import { getPublicSocialSettings, savePublicSocialSettings } from './siteSettings';
+import {
+  getPublicSocialSettings,
+  getPublicStoreSettings,
+  savePublicSocialSettings,
+  savePublicStoreSettings,
+} from './siteSettings';
 import monitorImg from '../assets/images/curved_gaming_monitor_1793432526940.jpg';
 import headphonesImg from '../assets/images/wireless_anc_headphones_1793432526819.jpg';
 import keyboardImg from '../assets/images/mechanical_keyboard_1793432527212.jpg';
@@ -39,13 +44,15 @@ const STORAGE_KEYS = {
 
 const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shopName: 'Kefayaan',
-  tagline: 'Amazon US Official Storefront & Verified Deals',
+  retailerName: 'Amazon',
+  purchaseButtonLabel: 'Buy on Amazon',
+  tagline: 'Curated products and helpful buying guides',
   logoUrl: '/assets/aistudio/DP_af5fa802.png',
   amazonOfficialStoreUrl: 'https://link.amazon/B0dbjUEFY',
   defaultAffiliateTag: 'kefayaan-20',
   officialStoreClicksCount: 328,
-  heroHeadline: 'Verified US Amazon Best Sellers, Curated by Kefayaan.',
-  heroSubtitle: 'Every product is hand-tested, lab-benchmarked, and backed by direct Amazon Prime delivery with official manufacturer warranty.',
+  heroHeadline: 'Thoughtfully selected products, clearly presented.',
+  heroSubtitle: 'Compare useful details, then visit the retailer for current price and availability.',
 };
 
 const DEFAULT_PIXEL_SETTINGS: PixelSettings = {
@@ -57,7 +64,7 @@ const DEFAULT_PIXEL_SETTINGS: PixelSettings = {
   googleEnabled: true,
   pinterestTagId: '2613020754632',
   pinterestEnabled: true,
-  trackAsOrder: true, // Buy Now is treated as Purchase / Order for Ads optimization
+  trackAsOrder: true,
   trackInitiateCheckout: true,
 };
 
@@ -124,9 +131,9 @@ const INITIAL_PRODUCTS: Product[] = [
       'Grain-free formula with zero corn, wheat, soy, or artificial carrageenan',
       'Infused with Omega-3 & Omega-6 fatty acids for a silky coat and healthy joints',
       'High moisture broth formulation to support feline urinary tract hydration',
-      'Veterinarian recommended and certified Made in USA in FDA-inspected facilities'
+      'Review sourcing and manufacturing details on the retailer product page'
     ],
-    description: 'The #1 bestselling wet cat food in the US pet category. Formulated by veterinary animal nutritionists, Nature’s Harvest delivers pure, unprocessed animal protein with zero filler grains for optimal feline vitality.',
+    description: 'A wet cat food option featuring salmon and chicken. Check the retailer listing for current ingredients, package details, and feeding guidance.',
     badge: "Amazon's Choice",
     inStock: true,
     clicksCount: 388,
@@ -192,11 +199,11 @@ const INITIAL_PRODUCTS: Product[] = [
       '24 grams of pure whey protein isolate per scoop to fuel lean muscle growth',
       '5.5g naturally occurring BCAAs and 11g of naturally occurring essential amino acids',
       'Instantized micro-filtered powder mixes effortlessly in shaker with zero clumps',
-      'Informed Choice certified — tested banned-substance free for US competitive athletes',
+      'Informed Choice certified — tested for banned substances',
       'Low sugar (1g) and low carb (3g) keto-friendly nutritional profile'
     ],
     description: 'The world’s most trusted post-workout supplement. Gold Standard 100% Whey uses primary Whey Protein Isolates to maximize absorption speed, muscle recovery, and workout endurance.',
-    badge: '#1 Best Seller',
+    badge: '',
     inStock: true,
     clicksCount: 512,
     viewsCount: 6310,
@@ -449,6 +456,7 @@ class StoreService {
       });
       window.setInterval(() => {
         void this.syncCloudSocialSettings();
+        void this.syncCloudStoreSettings();
       }, 30_000);
     }
   }
@@ -518,6 +526,7 @@ class StoreService {
     this.recordVisitorSession();
     this.syncCloudProducts();
     void this.syncCloudSocialSettings();
+    void this.syncCloudStoreSettings();
   }
 
   private async syncCloudSocialSettings(): Promise<void> {
@@ -528,6 +537,16 @@ class StoreService {
       this.notify();
     } catch (error) {
       console.warn('Cloud social settings could not be loaded', error);
+    }
+  }
+
+  private async syncCloudStoreSettings(): Promise<void> {
+    try {
+      const settings = await getPublicStoreSettings();
+      if (!settings) return;
+      this.updateStoreSettings(settings);
+    } catch (error) {
+      console.warn('Cloud storefront settings could not be loaded', error);
     }
   }
 
@@ -663,11 +682,12 @@ class StoreService {
         variants: Array.isArray(product.variants) ? product.variants : [],
         videoType: product.videoType || 'none',
         videoUrl: product.videoUrl || '',
-        rating: typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 4.8,
-        reviewCount: typeof product.reviewCount === 'number' && !isNaN(product.reviewCount) ? product.reviewCount : 1500,
-        features: product.features && product.features.length ? product.features : ['100% genuine product', 'Amazon Prime 2-day delivery eligible'],
+        rating: typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 0,
+        reviewCount: typeof product.reviewCount === 'number' && !isNaN(product.reviewCount) ? product.reviewCount : 0,
+        features: product.features || [],
         description: product.description || '',
         badge: product.badge || '',
+        isBestSeller: product.isBestSeller === true,
         inStock: product.inStock !== undefined ? product.inStock : true,
         clicksCount: 0,
         viewsCount: 0,
@@ -718,7 +738,7 @@ class StoreService {
     return false;
   }
 
-  // --- Outbound Click Tracking (Amazon Affiliate Buy Now) ---
+  // --- Outbound Retailer Click Tracking ---
   public getProductClicks(productId: string): number {
     const prod = this.products.find(p => p.id === productId);
     const loggedClicks = this.clicks.filter(c => c.productId === productId).length;
@@ -740,7 +760,7 @@ class StoreService {
     const clickRecord: OutboundClick = {
       id: `clk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       productId,
-      productTitle: prod ? prod.title : (productId === 'kefayaan-official-store' ? 'Amazon Official Storefront' : 'Direct Showcase Link'),
+      productTitle: prod ? prod.title : (productId === 'kefayaan-official-store' ? 'Kefayaan retailer storefront' : 'Direct Showcase Link'),
       timestamp: now.toISOString(),
       date: dateStr,
       month: monthStr,
@@ -840,15 +860,11 @@ class StoreService {
 
     const topClickedProducts = Object.values(productClickMap).sort((a, b) => b.clicks - a.clicks);
 
-    // Estimated Commission (assuming average order price $280 and 3.5% Amazon associate fee)
-    const estimatedEarnings = (totalClicks * 0.085 * 280 * 0.035).toFixed(2);
-
     return {
       totalVisitors,
       uniqueSessions,
       totalClicks,
       clickRate,
-      estimatedEarnings,
       timeSeries,
       devices,
       topClickedProducts,
@@ -915,7 +931,7 @@ class StoreService {
 
   public getSocialUrl(channel: SocialChannel, message?: string, customHandle?: string): string {
     const s = this.getSocialSettings();
-    const text = encodeURIComponent(message || 'Hello! I am inquiring about a curated tech product on Amazon from AuraGear.');
+    const text = encodeURIComponent(message || 'Hello! I am inquiring about a curated product from Kefayaan.');
     
     switch (channel) {
       case 'whatsapp': {
@@ -944,7 +960,7 @@ class StoreService {
     }
   }
 
-  // --- Store Settings & Amazon Official Store Link ---
+  // --- Store Settings & Retailer Store Link ---
   public getStoreSettings(): StoreSettings {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.STORE_SETTINGS);
@@ -960,9 +976,21 @@ class StoreService {
     const updated = { ...current, ...settings };
     try {
       localStorage.setItem(STORAGE_KEYS.STORE_SETTINGS, JSON.stringify(updated));
-    } catch {}
+    } catch (error) {
+      console.warn('Store settings cache could not be saved', error);
+    }
     this.notify();
     return updated;
+  }
+
+  public async saveStoreSettings(settings: Partial<StoreSettings>): Promise<StoreSettings> {
+    const updated = this.updateStoreSettings(settings);
+    const publicSettings = await savePublicStoreSettings({
+      retailerName: updated.retailerName,
+      purchaseButtonLabel: updated.purchaseButtonLabel,
+      amazonOfficialStoreUrl: updated.amazonOfficialStoreUrl,
+    });
+    return this.updateStoreSettings(publicSettings);
   }
 
   public trackOfficialStoreClick(): OutboundClick {

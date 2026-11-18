@@ -13,6 +13,8 @@ export interface ProductVariant {
 
 export interface StoreSettings {
   shopName: string;
+  retailerName: string;
+  purchaseButtonLabel: string;
   tagline: string;
   logoUrl: string;
   amazonOfficialStoreUrl: string;
@@ -21,6 +23,13 @@ export interface StoreSettings {
   heroHeadline: string;
   heroSubtitle: string;
 }
+
+export type PublicStoreSettings = Pick<
+  StoreSettings,
+  'retailerName' | 'purchaseButtonLabel' | 'amazonOfficialStoreUrl'
+>;
+
+export type CatalogView = 'best-sellers' | 'new-arrivals' | 'all-products';
 
 export interface Product {
   id: string;
@@ -42,6 +51,7 @@ export interface Product {
   features: string[];
   description: string;
   badge?: string;
+  isBestSeller?: boolean;
   inStock: boolean;
   clicksCount: number;
   viewsCount: number;
@@ -106,8 +116,8 @@ export interface PixelSettings {
   googleEnabled: boolean;
   pinterestTagId: string;
   pinterestEnabled: boolean;
-  trackAsOrder: boolean; // Treat "Buy on Amazon" click as Purchase/Order for ads optimization
-  trackInitiateCheckout: boolean; // Also send InitiateCheckout event
+  trackAsOrder: boolean; // Include Purchase/Order in manual pixel tests
+  trackInitiateCheckout: boolean; // Include checkout initiation in manual pixel tests
 }
 
 export interface PixelEventLog {

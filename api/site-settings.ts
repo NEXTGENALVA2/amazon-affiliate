@@ -1,6 +1,6 @@
 import { ServerResponse } from 'node:http';
 import { createClient } from '@supabase/supabase-js';
-import type { SocialChannel, SocialSettings } from '../src/types.js';
+import type { PublicStoreSettings, SocialChannel, SocialSettings } from '../src/types.js';
 import {
   AdminApiError,
   assertAdminRequestOrigin,
@@ -11,6 +11,7 @@ import {
 import type { AdminRequest } from '../server/admin-auth.js';
 
 const SETTING_ID = 'social';
+const STOREFRONT_SETTING_ID = 'storefront';
 const SOCIAL_CHANNELS = new Set<SocialChannel>([
   'whatsapp',
   'instagram',
@@ -26,6 +27,11 @@ const DEFAULT_SETTINGS: SocialSettings = {
   twitterUsername: 'kefayaan',
   visibleChannels: [...SOCIAL_CHANNELS],
   customLinks: [],
+};
+const DEFAULT_STOREFRONT_SETTINGS: PublicStoreSettings = {
+  retailerName: 'Amazon',
+  purchaseButtonLabel: 'Buy on Amazon',
+  amazonOfficialStoreUrl: 'https://link.amazon/B0dbjUEFY',
 };
 
 function validateSettings(input: unknown): SocialSettings {
@@ -83,6 +89,41 @@ function validateSettings(input: unknown): SocialSettings {
   };
 }
 
+function validateStorefrontSettings(input: unknown): PublicStoreSettings {
+  if (!input || typeof input !== 'object') {
+    throw new AdminApiError(400, 'Storefront settings are required.');
+  }
+  const value = input as Record<string, unknown>;
+  const stringValue = (key: keyof PublicStoreSettings, fallback: string, maxLength: number): string => {
+    const candidate = value[key];
+    if (candidate === undefined) return fallback;
+    if (typeof candidate !== 'string' || candidate.trim().length === 0 || candidate.length > maxLength) {
+      throw new AdminApiError(400, `Invalid ${key} value.`);
+    }
+    return candidate.trim();
+  };
+  const rawUrl = stringValue(
+    'amazonOfficialStoreUrl',
+    DEFAULT_STOREFRONT_SETTINGS.amazonOfficialStoreUrl,
+    500
+  );
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new AdminApiError(400, 'The retailer storefront URL is invalid.');
+  }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+    throw new AdminApiError(400, 'The retailer storefront URL must be a public HTTP or HTTPS link.');
+  }
+
+  return {
+    retailerName: stringValue('retailerName', DEFAULT_STOREFRONT_SETTINGS.retailerName, 40),
+    purchaseButtonLabel: stringValue('purchaseButtonLabel', DEFAULT_STOREFRONT_SETTINGS.purchaseButtonLabel, 40),
+    amazonOfficialStoreUrl: url.toString(),
+  };
+}
+
 export default async function handler(request: AdminRequest, response: ServerResponse): Promise<void> {
   try {
     const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -94,13 +135,23 @@ export default async function handler(request: AdminRequest, response: ServerRes
       auth: { persistSession: false, autoRefreshToken: false },
     });
     if (request.method === 'GET') {
+      const settingsType = new URL(request.url || '/api/site-settings', 'http://localhost').searchParams.get('type');
+      if (settingsType && settingsType !== 'storefront') {
+        throw new AdminApiError(400, 'Unknown settings type.');
+      }
+      const settingId = settingsType === 'storefront' ? STOREFRONT_SETTING_ID : SETTING_ID;
       const { data, error } = await client
         .from('storefront_settings')
         .select('payload')
-        .eq('id', SETTING_ID)
+        .eq('id', settingId)
         .maybeSingle();
       if (error) throw new AdminApiError(502, `Could not load storefront settings: ${error.message}`);
-      sendAdminJson(response, 200, { data: data?.payload ? validateSettings(data.payload) : null });
+      const payload = data?.payload
+        ? settingsType === 'storefront'
+          ? validateStorefrontSettings(data.payload)
+          : validateSettings(data.payload)
+        : null;
+      sendAdminJson(response, 200, { data: payload });
       return;
     }
 
@@ -112,6 +163,21 @@ export default async function handler(request: AdminRequest, response: ServerRes
     assertAdminRequestOrigin(request);
     requireAdmin(request);
     const body = readAdminRequestBody(request);
+    if (body.type !== undefined && body.type !== 'storefront') {
+      throw new AdminApiError(400, 'Unknown settings type.');
+    }
+    if (body.type === 'storefront') {
+      const settings = validateStorefrontSettings(body.settings);
+      const { error } = await client
+        .from('storefront_settings')
+        .upsert(
+          { id: STOREFRONT_SETTING_ID, payload: settings, updated_at: new Date().toISOString() },
+          { onConflict: 'id' }
+        );
+      if (error) throw new AdminApiError(502, `Could not save storefront settings: ${error.message}`);
+      sendAdminJson(response, 200, { data: settings });
+      return;
+    }
     const settings = validateSettings(body.settings);
     const { error } = await client
       .from('storefront_settings')

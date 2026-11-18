@@ -19,6 +19,9 @@ export const AdminSocialAccounts: React.FC = () => {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [storeError, setStoreError] = useState('');
+  const [isSavingStore, setIsSavingStore] = useState(false);
+  const [storeSaved, setStoreSaved] = useState(false);
 
   useEffect(() => {
     setSettings(store.getSocialSettings());
@@ -29,11 +32,22 @@ export const AdminSocialAccounts: React.FC = () => {
     setSettings((current) => ({ ...current, ...patch }));
   };
 
-  const handleSaveStore = (event: React.FormEvent) => {
+  const handleSaveStore = async (event: React.FormEvent) => {
     event.preventDefault();
-    store.updateStoreSettings(storeSettings);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2500);
+    setStoreError('');
+    setIsSavingStore(true);
+    try {
+      const result = await store.saveStoreSettings(storeSettings);
+      setStoreSettings(result);
+      setStoreSaved(true);
+      window.setTimeout(() => setStoreSaved(false), 2500);
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : 'Could not save retailer settings.';
+      setStoreSettings(store.getStoreSettings());
+      setStoreError(`Saved only in this browser; other visitors may not see the change: ${message}`);
+    } finally {
+      setIsSavingStore(false);
+    }
   };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +122,7 @@ export const AdminSocialAccounts: React.FC = () => {
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
         <div>
           <h2 className="text-lg font-bold text-slate-950">Store Identity</h2>
-          <p className="mt-1 text-xs text-slate-500">Manage your storefront name, logo, and Amazon link.</p>
+          <p className="mt-1 text-xs text-slate-500">Manage your storefront identity and retailer purchase links.</p>
         </div>
         <form onSubmit={handleSaveStore} className="grid grid-cols-1 gap-4 text-xs md:grid-cols-2">
           <label className="space-y-1">
@@ -119,8 +133,30 @@ export const AdminSocialAccounts: React.FC = () => {
               className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5"
             />
           </label>
+          <label className="space-y-1">
+            <span className="font-semibold text-slate-700">Retailer Name</span>
+            <input
+              required
+              maxLength={40}
+              value={storeSettings.retailerName}
+              onChange={(event) => setStoreSettings((current) => ({ ...current, retailerName: event.target.value }))}
+              placeholder="Amazon or Walmart"
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="font-semibold text-slate-700">Product Button Label</span>
+            <input
+              required
+              maxLength={40}
+              value={storeSettings.purchaseButtonLabel}
+              onChange={(event) => setStoreSettings((current) => ({ ...current, purchaseButtonLabel: event.target.value }))}
+              placeholder="Buy on Amazon"
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5"
+            />
+          </label>
           <label className="space-y-1 md:col-span-2">
-            <span className="font-semibold text-slate-700">Amazon Official Store URL</span>
+            <span className="font-semibold text-slate-700">Retailer Storefront URL</span>
             <input
               type="url"
               required
@@ -141,13 +177,15 @@ export const AdminSocialAccounts: React.FC = () => {
             <span className="font-semibold text-slate-700">Upload logo</span>
             <input type="file" accept="image/*" onChange={handleLogoUpload} className="w-full text-xs text-slate-500" />
           </label>
+          {storeError && <p role="alert" className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">{storeError}</p>}
+          {storeSaved && <p role="status" className="md:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-700">Store settings saved for all visitors.</p>}
           <div className="flex items-center justify-between gap-3 md:col-span-2">
             <span className="text-[11px] text-slate-500">
               Official store clicks: {storeSettings.officialStoreClicksCount || 0}
             </span>
-            <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 font-bold text-slate-950 hover:bg-amber-500">
+            <button type="submit" disabled={isSavingStore} className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 font-bold text-slate-950 hover:bg-amber-500 disabled:cursor-wait disabled:opacity-60">
               <Save className="h-4 w-4" />
-              Save Store Settings
+              {isSavingStore ? 'Saving...' : 'Save Store Settings'}
             </button>
           </div>
         </form>

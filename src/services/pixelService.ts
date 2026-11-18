@@ -262,7 +262,7 @@ class PixelTrackingService {
     }
   }
 
-  // --- Event Tracking: Buy Now Click (Treated as Purchase/Order for Ads) ---
+  // --- Manual Pixel Test Events ---
   public trackBuyNow(product: Product, targetUrl?: string, customPrice?: number) {
     const settings = store.getPixelSettings();
     const value = customPrice !== undefined ? customPrice : product.dealPrice || product.price || 0;

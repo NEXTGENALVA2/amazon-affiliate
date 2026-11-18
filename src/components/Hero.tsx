@@ -2,13 +2,7 @@ import React from 'react';
 import {
   CheckCircle2,
   Play,
-  ArrowUpRight,
-  TrendingUp,
-  ShieldCheck,
   Star,
-  Flame,
-  Award,
-  Sparkles,
   ExternalLink,
 } from 'lucide-react';
 import { Product } from '../types';
@@ -17,10 +11,13 @@ import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
 interface HeroProps {
   selectedCategory: string;
   onSelectCategory: (cat: string) => void;
-  categories: string[];
+  categories: { name: string; count: number }[];
   trendingProduct?: Product;
+  showSpotlight: boolean;
   onOpenFeaturedVideo: (product?: Product) => void;
   onBuyFeatured: (product: Product, e: React.MouseEvent) => void;
+  retailerName: string;
+  purchaseButtonLabel: string;
 }
 
 export const Hero: React.FC<HeroProps> = ({
@@ -28,8 +25,11 @@ export const Hero: React.FC<HeroProps> = ({
   onSelectCategory,
   categories,
   trendingProduct,
+  showSpotlight,
   onOpenFeaturedVideo,
   onBuyFeatured,
+  retailerName,
+  purchaseButtonLabel,
 }) => {
   const spotlight = trendingProduct || {
     id: 'prod-cat-food',
@@ -42,7 +42,7 @@ export const Hero: React.FC<HeroProps> = ({
     image: '/src/assets/images/premium_cat_food_1793635553336.jpg',
     rating: 4.9,
     reviewCount: 14920,
-    badge: "Amazon's Choice",
+    badge: '',
   } as Product;
 
   const discountPercent = Math.round(
@@ -52,73 +52,53 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 text-white border-b border-slate-800">
-      {/* Live US Amazon Trending Deals Ticker */}
+      {/* Store introduction */}
       <div className="bg-amber-400 text-slate-950 text-xs py-2 px-4 border-b border-amber-300 font-medium">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 overflow-x-auto whitespace-nowrap">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 font-extrabold uppercase tracking-wider text-[11px] bg-slate-950 text-white px-2 py-0.5 rounded">
-              <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
-              Amazon US Movers & Shakers
-            </span>
-            <span className="text-xs font-semibold">
-              Trending Today: Up to 40% Off Cat Food & Pet Essentials · Optimum Nutrition Whey Protein · Ninja Dual Air Fryer · OLED Monitors
-            </span>
-          </div>
-          <div className="hidden md:flex items-center gap-4 text-[11px] font-bold text-slate-900">
-            <span>Free 2-Day Prime Shipping Verified</span>
-            <span>·</span>
-            <span>Austin & Seattle Testing Labs</span>
-          </div>
+        <div className="max-w-7xl mx-auto text-center font-semibold">
+          Find useful products, compare details, and shop with the retailer you choose.
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-10 sm:pb-14">
         {/* Main 2-Column Split */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: US Media Brand Headline */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* Left Column: Store introduction */}
+          <div className={`${showSpotlight ? 'lg:col-span-7' : 'lg:col-span-12'} space-y-6`}>
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs text-amber-300 font-semibold backdrop-blur-sm">
-                  <Award className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Kefayaan · Verified Amazon Associate Partner</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Kefayaan · Thoughtful product picks</span>
                 </div>
-                <a
-                  href="https://link.amazon/B0dbjUEFY"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition-all shadow-sm"
-                >
-                  <span>Amazon Official Storefront</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
               </div>
 
               <h1 className="text-[1.8rem] sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.12] text-balance">
-                Verified Amazon Best Sellers, Curated by Kefayaan.
+                Discover products that fit your everyday needs.
               </h1>
 
               <p className="text-sm sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
-                Skip the sponsored noise. We benchmark Amazon US’s top-selling pet food, gym nutrition, smart kitchen gadgets, and tech electronics with hands-on tests, full variants, and 1-click official checkout.
+                Browse by category, compare the details that matter, and continue to {retailerName} to check current price and availability.
               </p>
             </div>
-            {/* Quick Department Selector Pills */}
+            {/* Category Selector */}
             <div className="space-y-2 pt-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Explore Verified US Amazon Departments:
+                Browse categories
               </span>
-              <div className="flex flex-wrap items-center gap-2">
-                {categories.map((cat) => (
+              <div id="departments" className="flex flex-wrap items-center gap-2">
+                {categories.map(({ name, count }) => (
                   <button
-                    key={cat}
-                    onClick={() => onSelectCategory(cat)}
+                    key={name}
+                    onClick={() => onSelectCategory(name)}
+                    aria-pressed={selectedCategory === name}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                      selectedCategory === cat
+                      selectedCategory === name
                         ? 'bg-amber-400 text-slate-950 shadow-md font-bold'
                         : 'bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white border border-white/10'
                     }`}
                   >
-                    {cat === 'All' ? 'All Best Sellers' : cat}
+                    {name === 'All' ? 'All categories' : name}
+                    <span className="ml-1.5 opacity-70">({count})</span>
                   </button>
                 ))}
               </div>
@@ -126,16 +106,15 @@ export const Hero: React.FC<HeroProps> = ({
 
           </div>
 
-          {/* Right Column: "Today's #1 Spotlight Amazon Deal" Showcase Card */}
-          <div className="lg:col-span-5">
+          {/* Right Column: Featured product */}
+          {showSpotlight && <div className="lg:col-span-5">
             <div className="relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md p-5 shadow-2xl space-y-4">
               {/* Card Header Badge */}
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-amber-400">
-                  <Flame className="w-3.5 h-3.5 fill-amber-400" />
-                  Today's Top Amazon US Deal
+                  Featured product
                 </span>
-                <span className="text-[11px] text-slate-400 font-mono">Verified 2 Hours Ago</span>
+                <span className="text-[11px] text-slate-400 font-mono">{retailerName}</span>
               </div>
 
               {/* Product Media */}
@@ -185,12 +164,9 @@ export const Hero: React.FC<HeroProps> = ({
                     <Star className="w-3.5 h-3.5 fill-amber-400 shrink-0" />
                     <span className="font-mono">{spotlight.rating}</span>
                     <span className="text-slate-400 font-normal">
-                      ({spotlight.reviewCount.toLocaleString()} Amazon ratings)
+                      ({spotlight.reviewCount.toLocaleString()} ratings)
                     </span>
                   </div>
-                  <span className="text-emerald-400 font-bold text-[11px] bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded">
-                    In Stock &amp; Prime
-                  </span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 pt-2 border-t border-white/10">
@@ -207,7 +183,7 @@ export const Hero: React.FC<HeroProps> = ({
                     </div>
                     {discountPercent > 0 && (
                       <span className="text-[11px] font-bold text-emerald-400 block">
-                        Save {discountPercent}% instant Amazon discount
+                        Save {discountPercent}% compared with the listed price
                       </span>
                     )}
                   </div>
@@ -217,54 +193,54 @@ export const Hero: React.FC<HeroProps> = ({
                     onClick={(e) => onBuyFeatured(spotlight, e)}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-transform hover:scale-102 cursor-pointer active:scale-95"
                   >
-                    <span>Buy on Amazon</span>
+                    <span>{purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
 
-        {/* 4-Column Editorial Trust Strip Below Split */}
+        {/* Store information */}
         <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 text-xs text-slate-300">
           <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 sm:bg-transparent sm:border-0">
             <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 shrink-0">
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-white">40+ Hours Lab Testing</div>
-              <div className="text-[11px] text-slate-400">Nutritional &amp; hardware checks</div>
+              <div className="font-bold text-white">Clear product details</div>
+              <div className="text-[11px] text-slate-400">Review key features before you shop</div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 sm:bg-transparent sm:border-0">
             <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 shrink-0">
-              <ShieldCheck className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-white">Zero Sponsored Bias</div>
-              <div className="text-[11px] text-slate-400">100% editorially independent</div>
+              <div className="font-bold text-white">Retailer checkout</div>
+              <div className="text-[11px] text-slate-400">Purchases are completed on {retailerName}</div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 sm:bg-transparent sm:border-0">
             <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 shrink-0">
-              <TrendingUp className="w-4 h-4" />
+              <Star className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-white">Live Amazon Price Sync</div>
-              <div className="text-[11px] text-slate-400">Updated hourly for deal alerts</div>
+              <div className="font-bold text-white">Price transparency</div>
+              <div className="text-[11px] text-slate-400">Confirm current prices with the retailer</div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 sm:bg-transparent sm:border-0">
             <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-amber-400 shrink-0">
-              <Award className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-white">Official Prime Benefits</div>
-              <div className="text-[11px] text-slate-400">Full 30-day Amazon returns</div>
+              <div className="font-bold text-white">Helpful categories</div>
+              <div className="text-[11px] text-slate-400">Browse products by interest</div>
             </div>
           </div>
         </div>

@@ -72,7 +72,7 @@ export const AdminPixelTracking: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <Send className="w-4 h-4" />
-            <span>Test Fire Order Events</span>
+            <span>Test Pixel Events</span>
           </button>
         </div>
       </div>
@@ -343,7 +343,7 @@ export const AdminPixelTracking: React.FC = () => {
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-amber-500" />
             <h3 className="text-sm font-bold text-slate-900">
-              Conversion Event Rules for Ads Optimization
+              Manual Pixel Test Options
             </h3>
           </div>
 
@@ -357,10 +357,10 @@ export const AdminPixelTracking: React.FC = () => {
               />
               <div className="space-y-1">
                 <span className="text-xs font-bold text-slate-900 block">
-                  Treat &quot;Buy on Amazon&quot; click as Purchase / Order (Recommended for Ads)
+                  Include Purchase / Order events in manual tests
                 </span>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Since Amazon does not permit third-party postbacks, firing <strong>Purchase</strong> (Meta), <strong>CompletePayment</strong> (TikTok), and <strong>purchase</strong> (Google) on the Buy Now click trains your ad campaigns to target high-intent purchasers rather than casual clickers.
+                  This option affects the manual test only. Product-page clicks are outbound clicks, not confirmed purchases; use the retailer's affiliate reports to verify sales.
                 </p>
               </div>
             </label>
@@ -374,10 +374,10 @@ export const AdminPixelTracking: React.FC = () => {
               />
               <div className="space-y-1">
                 <span className="text-xs font-bold text-slate-900 block">
-                  Also fire &quot;InitiateCheckout&quot; / &quot;begin_checkout&quot; event
+                  Include checkout events in manual tests
                 </span>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Sends standard checkout initiation events to all active ad networks for dual-funnel audience retargeting and custom lookalike audience generation.
+                  Checkout events are sent only by the manual test and are not triggered by normal retailer-link clicks.
                 </p>
               </div>
             </label>
@@ -385,7 +385,7 @@ export const AdminPixelTracking: React.FC = () => {
 
           <div className="flex items-center justify-between pt-2">
             <span className="text-xs text-slate-500">
-              Settings apply immediately across storefront and product modal CTAs.
+              These options affect manual test events. Storefront clicks are recorded as outbound clicks only.
             </span>
             <button
               type="submit"
@@ -438,7 +438,7 @@ export const AdminPixelTracking: React.FC = () => {
               {logs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
-                    No pixel events recorded yet. Click &quot;Test Fire Order Events&quot; above or click &quot;Buy on Amazon&quot; on any product to watch events fire in real time!
+                    No pixel events recorded yet. Use &quot;Test Pixel Events&quot; above to verify your configured ad platforms.
                   </td>
                 </tr>
               ) : (

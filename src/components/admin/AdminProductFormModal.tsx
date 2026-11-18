@@ -21,6 +21,7 @@ import {
 import { Product, ProductVariant } from '../../types';
 import { getYouTubeEmbedUrl, formatAmazonAffiliateUrl } from '../../utils/helpers';
 import { uploadImageToSupabase, uploadVideoToSupabase } from '../../services/storage';
+import { store } from '../../services/store';
 import premiumCatFood from '../../assets/images/premium_cat_food_1793635553336.jpg';
 import gymWheyProtein from '../../assets/images/gym_whey_protein_1793635553376.jpg';
 import smartAirFryer from '../../assets/images/smart_air_fryer_1793635553057.jpg';
@@ -87,17 +88,28 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   const [videoUrl, setVideoUrl] = useState('');
   
   // Badges & Ratings
-  const [badge, setBadge] = useState("Amazon's Choice");
-  const [rating, setRating] = useState('4.8');
-  const [reviewCount, setReviewCount] = useState('1500');
+  const [badge, setBadge] = useState('');
+  const [isBestSeller, setIsBestSeller] = useState(false);
+  const [rating, setRating] = useState('');
+  const [reviewCount, setReviewCount] = useState('');
   const [description, setDescription] = useState('');
-  const [features, setFeatures] = useState<string[]>([
-    'Real animal protein formulation with zero filler grains',
-    'Certified Amazon Prime 2-day delivery eligible'
-  ]);
+  const [features, setFeatures] = useState<string[]>([]);
   const [newFeatureText, setNewFeatureText] = useState('');
   const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
   const [draggedVariantImage, setDraggedVariantImage] = useState<{ variantId: string | null; index: number } | null>(null);
+  const retailerName = store.getStoreSettings().retailerName;
+  const isAmazonRetailer = retailerName.trim().toLowerCase() === 'amazon';
+  const formatRetailerUrl = (url: string) => {
+    const trimmedUrl = url.trim();
+    if (!isAmazonRetailer) return trimmedUrl;
+    try {
+      const hostname = new URL(trimmedUrl).hostname.toLowerCase();
+      const isAmazonHost = hostname === 'link.amazon' || /(^|\.)amazon\.(com(\.[a-z]{2})?|[a-z]{2}|co\.[a-z]{2})$/.test(hostname);
+      return isAmazonHost ? formatAmazonAffiliateUrl(trimmedUrl, affiliateTag) : trimmedUrl;
+    } catch {
+      return trimmedUrl;
+    }
+  };
 
   useEffect(() => {
     if (productToEdit) {
@@ -140,8 +152,9 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setVideoType(productToEdit.videoType || 'none');
       setVideoUrl(productToEdit.videoUrl || '');
       setBadge(productToEdit.badge || '');
-      setRating(productToEdit.rating.toString());
-      setReviewCount(productToEdit.reviewCount.toString());
+      setIsBestSeller(productToEdit.isBestSeller === true);
+      setRating(productToEdit.rating > 0 ? productToEdit.rating.toString() : '');
+      setReviewCount(productToEdit.reviewCount > 0 ? productToEdit.reviewCount.toString() : '');
       setDescription(productToEdit.description || '');
       setFeatures(productToEdit.features || []);
     } else {
@@ -152,7 +165,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setCustomCategory('');
       setPrice('46.99');
       setDealPrice('34.99');
-      setAmazonUrl('https://link.amazon/B0dbjUEFY');
+      setAmazonUrl('');
       setAffiliateTag('kefayaan-20');
       setGallery([PRESET_IMAGES[0].url]);
       setCoverIndex(0);
@@ -161,16 +174,12 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setDraggedVariantImage(null);
       setVideoType('youtube');
       setVideoUrl('https://www.youtube.com/watch?v=kYJv6uS8Vnk');
-      setBadge("Amazon's Choice");
-      setRating('4.8');
-      setReviewCount('1500');
-      setDescription(
-        'Top bestselling formulation crafted with pure, unadulterated ingredients. Formulated by specialists to ensure maximum absorption, health vitality, and Amazon Prime satisfaction.'
-      );
-      setFeatures([
-        'Real natural protein with zero filler grains',
-        'Official manufacturer warranty included'
-      ]);
+      setBadge('');
+      setIsBestSeller(false);
+      setRating('');
+      setReviewCount('');
+      setDescription('');
+      setFeatures([]);
     }
   }, [productToEdit, isOpen]);
 
@@ -327,7 +336,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       optionType: newVarOptionType.trim() || 'Option',
       dealPrice: parseFloat(newVarDealPrice) || parseFloat(dealPrice) || 0,
       price: parseFloat(newVarPrice) || parseFloat(price) || 0,
-      amazonUrl: newVarUrl.trim() ? formatAmazonAffiliateUrl(newVarUrl.trim(), affiliateTag) : undefined,
+      amazonUrl: newVarUrl.trim() ? formatRetailerUrl(newVarUrl.trim()) : undefined,
       image: newVarImages[0],
       gallery: newVarImages.slice(0, 20),
       inStock: true,
@@ -449,7 +458,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
     if (!title.trim() || !amazonUrl.trim()) return;
 
     const resolvedCategory = isCustomCategory ? customCategory.trim() || 'General' : category;
-    const formattedAmazonUrl = formatAmazonAffiliateUrl(amazonUrl, affiliateTag);
+    const formattedAmazonUrl = formatRetailerUrl(amazonUrl);
     const primaryImage = gallery[coverIndex] || gallery[0] || PRESET_IMAGES[0].url;
 
     const parsedRating = parseFloat(rating);
@@ -471,7 +480,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
         return {
           ...variant,
           amazonUrl: variant.amazonUrl?.trim()
-            ? formatAmazonAffiliateUrl(variant.amazonUrl.trim(), affiliateTag)
+            ? formatRetailerUrl(variant.amazonUrl.trim())
             : undefined,
           image: variantImages[0],
           gallery: variantImages,
@@ -480,8 +489,9 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       videoType,
       videoUrl: videoUrl.trim(),
       badge,
-      rating: !isNaN(parsedRating) ? Math.min(5, Math.max(1, parsedRating)) : 4.8,
-      reviewCount: !isNaN(parsedReviewCount) ? Math.max(0, parsedReviewCount) : 1500,
+      isBestSeller,
+      rating: !isNaN(parsedRating) && parsedRating > 0 ? Math.min(5, Math.max(1, parsedRating)) : 0,
+      reviewCount: !isNaN(parsedReviewCount) ? Math.max(0, parsedReviewCount) : 0,
       description: description.trim(),
       features,
     });
@@ -499,10 +509,10 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
         <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-200 bg-slate-50/80">
           <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-extrabold text-slate-950">
-              {productToEdit ? 'Edit Amazon Product Details' : 'Upload New Amazon Trending Product'}
+              {productToEdit ? 'Edit Product Details' : 'Add a Product'}
             </h3>
             <p className="text-[10px] sm:text-xs text-slate-500">
-              Add up to 20 images, detailed description, video review, and direct Amazon affiliate link
+              Add product images, accurate details, optional video, and a retailer product link
             </p>
           </div>
           <button
@@ -654,7 +664,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                   </button>
                 </div>
                 <p className="text-[10px] text-slate-400">
-                  Paste Amazon high-res image link or any web photo link.
+                  Paste a product image link or any web photo link.
                 </p>
               </div>
             </div>
@@ -767,13 +777,13 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Prominent Product Description & US Buying Guide */}
+          {/* Section 3: Product Description */}
           <div className="space-y-3 pt-4 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-900">
                 <span className="w-6 h-6 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-[11px]">3</span>
                 <h4 className="font-bold text-sm">
-                  Product Description & US Buying Guide (পণ্যের বিস্তারিত বিবরণ) *
+                  Product Description (পণ্যের বিস্তারিত বিবরণ) *
                 </h4>
               </div>
               <span className="text-[11px] text-slate-400 font-mono">
@@ -782,7 +792,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
             </div>
 
             <p className="text-[11px] text-slate-500">
-              Enter the full detailed description here. This will be prominently shown on the product card snippet and inside the full modal view for US buyers.
+              Enter accurate product information. This appears on the product card and details page.
             </p>
 
             <textarea
@@ -790,24 +800,24 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Write comprehensive product description here (e.g. key ingredients, nutritional profile, dimensions, warranty, why this product stands out on Amazon US, and how it was benchmarked)..."
+              placeholder="Add accurate product details such as materials, dimensions, ingredients, or compatibility."
               className="w-full p-4 text-xs bg-slate-50 border border-slate-300 rounded-2xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-950 leading-relaxed font-sans"
             />
           </div>
 
-          {/* Section 4: Amazon Affiliate & Direct Buy Now Link */}
+          {/* Section 4: Retailer link and pricing */}
           <div className="space-y-4 pt-4 border-t border-slate-200">
             <div className="flex items-center gap-2 text-slate-900">
               <span className="w-6 h-6 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-[11px]">4</span>
               <h4 className="font-bold text-sm text-amber-600">
-                Amazon Affiliate Direct Link & Pricing
+                {retailerName} Product Link & Pricing
               </h4>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2 space-y-1">
                 <label className="font-semibold text-slate-700">
-                  Amazon Product URL * (Paste clean or tagged link)
+                  {retailerName} product URL *
                 </label>
                 <div className="relative">
                   <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -816,22 +826,24 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     required
                     value={amazonUrl}
                     onChange={(e) => setAmazonUrl(e.target.value)}
-                    placeholder="https://www.amazon.com/dp/B084G26X19?tag=auragear-20"
+                    placeholder={`Paste the product link from ${retailerName}`}
                     className="w-full pl-9 pr-3.5 py-2 text-xs bg-amber-50/40 border border-amber-300/80 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-700">Amazon Associate Tag</label>
-                <input
-                  type="text"
-                  value={affiliateTag}
-                  onChange={(e) => setAffiliateTag(e.target.value)}
-                  placeholder="e.g. auragear-20"
-                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none font-mono"
-                />
-              </div>
+              {isAmazonRetailer && (
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-700">Amazon Associate Tag</label>
+                  <input
+                    type="text"
+                    value={affiliateTag}
+                    onChange={(e) => setAffiliateTag(e.target.value)}
+                    placeholder="e.g. kefayaan-20"
+                    className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none font-mono"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="font-semibold text-slate-700">Original List Price ($)</label>
@@ -846,7 +858,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-700">Amazon Deal Price ($)</label>
+                <label className="font-semibold text-slate-700">Current Deal Price ($)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -864,17 +876,31 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                   onChange={(e) => setBadge(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none"
                 >
-                  <option value="Amazon's Choice">Amazon's Choice</option>
-                  <option value="#1 Best Seller">#1 Best Seller</option>
+                  {isAmazonRetailer && <option value="Amazon's Choice">Amazon's Choice</option>}
                   <option value="Editor's Choice">Editor's Choice</option>
                   <option value="Trending Deal">Trending Deal</option>
                   <option value="Top Rated">Top Rated</option>
-                  <option value="Prime Day Deal">Prime Day Deal</option>
+                  {isAmazonRetailer && <option value="Prime Day Deal">Prime Day Deal</option>}
                   <option value="">No Badge</option>
                 </select>
               </div>
 
-              {/* Customer Review Rating & Total Reviewers Count (User requested manual inputs) */}
+              <label className="md:col-span-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5">
+                <input
+                  type="checkbox"
+                  checked={isBestSeller}
+                  onChange={(event) => setIsBestSeller(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-amber-500"
+                />
+                <span>
+                  <span className="block text-xs font-bold text-slate-900">Include in Best Sellers</span>
+                  <span className="mt-1 block text-[11px] leading-5 text-slate-600">
+                    Mark only after confirming sales in the retailer's sales report. Product clicks do not confirm a sale.
+                  </span>
+                </span>
+              </label>
+
+              {/* Optional customer rating and review count */}
               <div className="md:col-span-3 p-4 rounded-2xl bg-gradient-to-r from-amber-50/70 via-amber-50/40 to-slate-50 border border-amber-300/80 shadow-2xs space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
@@ -894,10 +920,10 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Live Preview:</span>
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
                     <span className="font-extrabold text-slate-900 font-mono">
-                      {parseFloat(rating) ? parseFloat(rating).toFixed(1) : '4.8'}
+                      {parseFloat(rating) ? parseFloat(rating).toFixed(1) : 'Not entered'}
                     </span>
                     <span className="text-slate-500 font-mono text-[11px]">
-                      ({parseInt(reviewCount) ? parseInt(reviewCount).toLocaleString() : '1,500'})
+                      {parseInt(reviewCount) ? `(${parseInt(reviewCount).toLocaleString()})` : ''}
                     </span>
                   </div>
                 </div>
@@ -908,7 +934,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     <div className="flex items-center justify-between">
                       <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                        <span>Star Rating (1.0 to 5.0) *</span>
+                        <span>Star Rating (1.0 to 5.0, optional)</span>
                       </label>
                       <span className="text-[10px] text-amber-700 font-mono font-medium">e.g. 4.8, 5.0</span>
                     </div>
@@ -918,10 +944,9 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                         step="0.1"
                         min="1.0"
                         max="5.0"
-                        required
                         value={rating}
                         onChange={(e) => setRating(e.target.value)}
-                        placeholder="4.8"
+                        placeholder="Leave blank if unknown"
                         className="w-full px-3.5 py-2 text-xs bg-white border border-amber-300 rounded-xl font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-2xs"
                       />
                     </div>
@@ -950,7 +975,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     <div className="flex items-center justify-between">
                       <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Total Customer Reviews Count *</span>
+                        <span>Total Customer Reviews Count (optional)</span>
                       </label>
                       <span className="text-[10px] text-amber-700 font-mono font-medium">e.g. 1000, 1500</span>
                     </div>
@@ -959,10 +984,9 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                         type="number"
                         step="1"
                         min="0"
-                        required
                         value={reviewCount}
                         onChange={(e) => setReviewCount(e.target.value)}
-                        placeholder="1500"
+                        placeholder="Leave blank if unknown"
                         className="w-full px-3.5 py-2 text-xs bg-white border border-amber-300 rounded-xl font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-2xs"
                       />
                     </div>
@@ -1005,7 +1029,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     </span>
                   </h4>
                   <p className="text-[11px] text-slate-500">
-                    Add customer-selectable options (e.g., "5 lbs / Vanilla", "24 Cans 5.5 oz", "8-Qt Stainless"). Each variant can have its own price, photos, and Amazon affiliate link.
+                    Add customer-selectable options such as size, flavor, or color. Each variant can have its own price, photos, and retailer product link.
                   </p>
                 </div>
               </div>
@@ -1077,9 +1101,9 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                 </div>
               </div>
 
-              {/* Optional Custom Amazon link for this variant */}
+              {/* Optional retailer link for this variant */}
               <div className="flex items-center gap-2 pt-1 text-xs">
-                <span className="text-[11px] font-semibold text-slate-500 shrink-0">Variant Amazon Affiliate Link (Optional):</span>
+                <span className="text-[11px] font-semibold text-slate-500 shrink-0">Variant retailer link (Optional):</span>
                 <input
                   type="url"
                   value={newVarUrl}
@@ -1204,7 +1228,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                         </button>
                       </div>
                       <label className="block space-y-1">
-                        <span className="text-[10px] font-semibold text-slate-500">Variant Amazon affiliate link</span>
+                        <span className="text-[10px] font-semibold text-slate-500">Variant retailer link</span>
                         <input
                           type="url"
                           value={v.amazonUrl || ''}

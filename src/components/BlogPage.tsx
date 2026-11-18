@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Clock3, ExternalLink } from 'lucide-re
 import { BLOG_ARTICLES, BlogArticle } from '../data/blog';
 import { Product } from '../types';
 import { getProductPath } from '../utils/productRoutes';
+import { store } from '../services/store';
 
 interface BlogPageProps {
   slug: string | null;
@@ -24,6 +25,10 @@ const ArticleCard: React.FC<{ article: BlogArticle }> = ({ article }) => (
 );
 
 export const BlogPage: React.FC<BlogPageProps> = ({ slug, products }) => {
+  const storeSettings = store.getStoreSettings();
+  const affiliateDisclosure = storeSettings.retailerName.toLowerCase() === 'amazon'
+    ? `As an Amazon Associate, ${storeSettings.shopName} earns from qualifying purchases.`
+    : `${storeSettings.shopName} may earn a commission from qualifying purchases through ${storeSettings.retailerName} links.`;
   const article = slug ? BLOG_ARTICLES.find((item) => item.slug === slug) : undefined;
   const relatedProducts = article
     ? article.relatedProductIds
@@ -65,7 +70,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({ slug, products }) => {
             </header>
 
             <aside className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-              <strong>Affiliate disclosure:</strong> As an Amazon Associate, Kefayaan earns from qualifying purchases. This guide is for general shopping information, not a claim of independent product testing. Product details, availability, and prices can change; confirm them with the seller.
+              <strong>Affiliate disclosure:</strong> {affiliateDisclosure} This guide is for general shopping information, not a claim of independent product testing. Product details, availability, and prices can change; confirm them with the retailer.
             </aside>
 
             <div className="mt-8 space-y-8">
@@ -129,7 +134,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({ slug, products }) => {
 
       <footer className="border-t border-slate-200 bg-white px-4 py-6 text-center text-xs leading-5 text-slate-500">
         <a href="/" className="font-semibold text-slate-700 hover:text-slate-950">Kefayaan home</a>
-        <p className="mx-auto mt-2 max-w-3xl">As an Amazon Associate, Kefayaan earns from qualifying purchases. Product details and prices may change; verify current information on Amazon.</p>
+        <p className="mx-auto mt-2 max-w-3xl">{affiliateDisclosure} Product details and prices may change; verify current information on the retailer's website.</p>
       </footer>
     </div>
   );

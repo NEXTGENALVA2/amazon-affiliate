@@ -74,7 +74,7 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string):
         <h1>${escapeHtml(article.title)}</h1>
         <p>${escapeHtml(article.description)}</p>
         <p>By Kefayaan Editorial Team · ${escapeHtml(article.publishedAt)} · ${article.readingMinutes} min read</p>
-        <aside><strong>Affiliate disclosure:</strong> As an Amazon Associate, Kefayaan earns from qualifying purchases. This guide is general shopping information, not a claim of independent product testing. Product details, availability, and prices can change; confirm them with the seller.</aside>
+        <aside><strong>Affiliate disclosure:</strong> Kefayaan may earn a commission from qualifying purchases through retailer links. This guide is general shopping information, not a claim of independent product testing. Product details, availability, and prices can change; confirm them with the retailer.</aside>
         ${sections}
         <p><a href="/blog">More buying guides</a></p>
       </article>

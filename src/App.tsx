@@ -14,9 +14,8 @@ import {
   Star,
   CheckCircle2,
   TrendingUp,
-  Filter,
 } from 'lucide-react';
-import { Product } from './types';
+import { CatalogView, Product } from './types';
 import { getSocialPlatform, SocialPlatformIcon } from './components/SocialPlatformIcon';
 import { store } from './services/store';
 import { Navbar } from './components/Navbar';
@@ -66,6 +65,18 @@ const matchesProductQuery = (product: Product, query: string): boolean => {
     .some((value) => value.toLocaleLowerCase().includes(searchTerm));
 };
 
+const isNewArrival = (product: Product): boolean => {
+  const createdAt = Date.parse(product.createdAt);
+  const ageInDays = (Date.now() - createdAt) / (1000 * 60 * 60 * 24);
+  return Number.isFinite(createdAt) && ageInDays >= 0 && ageInDays <= 30;
+};
+
+const collectionOptions: { id: CatalogView; label: string }[] = [
+  { id: 'best-sellers', label: 'Best Sellers' },
+  { id: 'all-products', label: 'All Products' },
+  { id: 'new-arrivals', label: 'New Arrivals' },
+];
+
 export default function App() {
   const [currentView, setCurrentView] = useState<'storefront' | 'admin'>('storefront');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -78,6 +89,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery ?? '');
   const [activeSearchQuery, setActiveSearchQuery] = useState<string | null>(initialSearchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCollection, setSelectedCollection] = useState<CatalogView>('all-products');
+  const [storeSettings, setStoreSettings] = useState(store.getStoreSettings());
   const pageViewUrl = `${window.location.pathname}${window.location.search}`;
   
   // Modals
@@ -86,11 +99,13 @@ export default function App() {
 
   const categoryCounts = getProductCategoryCounts(products);
   const categories = ['All', ...categoryCounts.map(({ name }) => name)];
+  const categoryOptions = [{ name: 'All', count: products.length }, ...categoryCounts];
 
   // Refresh products & auth on change
   const refreshState = () => {
     setProducts(store.getProducts());
     setIsProductsReady(store.areProductsReady());
+    setStoreSettings(store.getStoreSettings());
     const auth = store.getAdminAuth();
     setIsAdminLoggedIn(auth.isAuthenticated);
   };
@@ -205,8 +220,8 @@ export default function App() {
   useEffect(() => {
     const origin = window.location.origin;
     const pageUrl = new URL(window.location.pathname, origin).href;
-    let title = 'Kefayaan | Curated Amazon US Product Deals & Reviews';
-    let description = 'Discover curated Amazon US products, verified deals, detailed product information, and affiliate links from Kefayaan.';
+    let title = 'Kefayaan | Curated Products & Buying Guides';
+    let description = 'Browse curated products by category, compare useful details, and read practical buying guides from Kefayaan.';
     let image = '/assets/aistudio/DP_af5fa802.png';
     let robots = 'index,follow';
     let structuredData: Record<string, unknown> | null = {
@@ -293,8 +308,8 @@ export default function App() {
     } else if (!isBlogPage && activeSearchQuery !== null) {
       title = `Search results for ${activeSearchQuery || 'products'} | Kefayaan`;
       description = activeSearchQuery
-        ? `Products matching "${activeSearchQuery}" in the Kefayaan Amazon US storefront.`
-        : 'Search curated Amazon US products in the Kefayaan storefront.';
+        ? `Products matching "${activeSearchQuery}" in the Kefayaan storefront.`
+        : 'Search curated products in the Kefayaan storefront.';
       robots = 'noindex,follow';
       structuredData = null;
     }
@@ -351,8 +366,7 @@ export default function App() {
 
   const handleGoHome = () => {
     if (window.location.pathname !== '/' || window.location.search) {
-      window.location.assign('/');
-      return;
+      window.history.pushState({}, '', '/');
     }
     setSelectedProduct(null);
     setActiveSearchQuery(null);
@@ -361,13 +375,19 @@ export default function App() {
   };
 
   // Filter products
-  const filteredProducts = products.filter((p) => {
+  const collectionFilteredProducts = products.filter((p) => {
     const matchesCategory = Boolean(searchQuery.trim()) ||
       selectedCategory === 'All' ||
       p.category.trim().toLocaleLowerCase() === selectedCategory.toLocaleLowerCase();
     const matchesSearch = !searchQuery.trim() || matchesProductQuery(p, searchQuery);
-    return matchesCategory && matchesSearch;
+    const matchesCollection = selectedCollection === 'all-products' ||
+      (selectedCollection === 'best-sellers' && p.isBestSeller === true) ||
+      (selectedCollection === 'new-arrivals' && isNewArrival(p));
+    return matchesCategory && matchesSearch && matchesCollection;
   });
+  const filteredProducts = selectedCollection === 'new-arrivals'
+    ? [...collectionFilteredProducts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    : collectionFilteredProducts;
   const liveSearchResults = searchQuery.trim()
     ? products.filter((product) => matchesProductQuery(product, searchQuery))
     : [];
@@ -386,7 +406,7 @@ export default function App() {
     }, 4000);
   };
 
-  // Direct Buy Now Interceptor with Outbound Tracking and Ad Pixel Conversions
+  // Direct retailer-link handler with outbound click tracking
   const handleBuyNow = (
     product: Product,
     eOrUrl?: React.MouseEvent | string,
@@ -401,18 +421,16 @@ export default function App() {
       }
     }
 
-    const targetUrl = finalUrl || product.amazonUrl || store.getStoreSettings().amazonOfficialStoreUrl;
+    const currentStoreSettings = store.getStoreSettings();
+    const targetUrl = finalUrl || product.amazonUrl || currentStoreSettings.amazonOfficialStoreUrl;
 
     // 1. Log click in store for analytics & product counter
     store.trackAmazonClick(product.id, targetUrl);
 
-    // 2. Fire Ad Pixels (Meta, TikTok, Google Tag) - Treats Buy Now as Purchase / Order
-    pixelService.trackBuyNow(product, targetUrl);
+    // Product-page clicks are outbound clicks, not confirmed purchases.
+    showToast(`Opening ${currentStoreSettings.retailerName} for "${product.title}"...`);
 
-    // 3. Display non-intrusive redirection toast
-    showToast(`Redirecting to official Amazon deal for "${product.title}"...`);
-
-    // 4. Open Amazon URL in new tab safely
+    // Open the retailer product page in a new tab.
     window.open(targetUrl, '_blank', 'noopener,noreferrer,nofollow');
   };
 
@@ -478,7 +496,7 @@ export default function App() {
     return <BlogPage slug={blogSlug} products={products} />;
   }
 
-  // Key Pillars for US Trending Spotlight
+  // Featured products for the storefront spotlight
   const catFoodProduct = products.find((p) => p.id === 'prod-cat-food');
   const gymProteinProduct = products.find((p) => p.id === 'prod-gym-protein');
   const kitchenProduct = products.find((p) => p.id === 'prod-kitchen-airfryer');
@@ -499,6 +517,11 @@ export default function App() {
           onOpenSocialHub={handleOpenSocialHub}
           onGoHome={handleGoHome}
           onScrollToSection={handleScrollTo}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          selectedCollection={selectedCollection}
+          onSelectCollection={setSelectedCollection}
         />
         <ProductSearchBar
           query={searchQuery}
@@ -516,6 +539,9 @@ export default function App() {
             onClose={handleCloseProductPage}
             onBuyNow={(prod, customUrl) => handleBuyNow(prod, undefined, customUrl)}
             onOpenSocialLinks={handleOpenSocialHub}
+            retailerName={storeSettings.retailerName}
+            purchaseButtonLabel={storeSettings.purchaseButtonLabel}
+            shopName={storeSettings.shopName}
           />
         ) : (
           <main className="flex-1 flex items-center justify-center px-6 py-20 text-center">
@@ -533,7 +559,9 @@ export default function App() {
           </main>
         )}
         <footer className="border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-500">
-          Kefayaan participates in the Amazon Associates program and may earn from qualifying purchases.
+          {storeSettings.retailerName.toLowerCase() === 'amazon'
+            ? `As an Amazon Associate, ${storeSettings.shopName} earns from qualifying purchases.`
+            : `${storeSettings.shopName} may earn a commission from qualifying purchases through ${storeSettings.retailerName} links.`}
         </footer>
         <AdminLoginModal
           isOpen={isAdminLoginModalOpen}
@@ -565,6 +593,11 @@ export default function App() {
         onOpenSocialHub={handleOpenSocialHub}
         onGoHome={handleGoHome}
         onScrollToSection={handleScrollTo}
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        selectedCollection={selectedCollection}
+        onSelectCollection={setSelectedCollection}
       />
 
       {activeSearchQuery === null && socialHubLinks.length > 0 && (
@@ -603,9 +636,12 @@ export default function App() {
         <Hero
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
-          categories={categories}
-          trendingProduct={products[0]}
+          categories={categoryOptions}
+          trendingProduct={filteredProducts[0]}
+          showSpotlight={filteredProducts.length > 0}
           onBuyFeatured={handleBuyNow}
+          retailerName={storeSettings.retailerName}
+          purchaseButtonLabel={storeSettings.purchaseButtonLabel}
           onOpenFeaturedVideo={(prod) => {
             const target = prod || products[0];
             if (target) setSelectedProduct(target);
@@ -645,6 +681,8 @@ export default function App() {
                     product={product}
                     onSelect={handleSelectProduct}
                     onBuyNow={handleBuyNow}
+                    retailerName={storeSettings.retailerName}
+                    purchaseButtonLabel={storeSettings.purchaseButtonLabel}
                   />
                 ))}
               </div>
@@ -670,71 +708,20 @@ export default function App() {
       ) : (
       <main className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-20">
 
-        <section id="departments" aria-labelledby="category-filter-title" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                <Filter className="h-5 w-5" />
-              </span>
-              <div>
-                <h2 id="category-filter-title" className="text-lg font-extrabold text-slate-950 sm:text-xl">
-                  Shop by category
-                </h2>
-                <p className="text-xs text-slate-500 sm:text-sm">
-                  Choose a category to find matching products.
-                </p>
-              </div>
-            </div>
-            <p className="text-xs font-medium text-slate-500 sm:text-right" aria-live="polite">
-              Showing {filteredProducts.length} of {products.length} products
-            </p>
-          </div>
-
-          <div
-            role="group"
-            aria-label="Filter products by category"
-            className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
-          >
-            {[{ name: 'All', count: products.length }, ...categoryCounts].map(({ name, count }) => {
-              const isSelected = selectedCategory.toLocaleLowerCase() === name.toLocaleLowerCase();
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => setSelectedCategory(name)}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors sm:text-sm ${
-                    isSelected
-                      ? 'border-slate-950 bg-slate-950 text-white shadow-sm'
-                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-400 hover:bg-amber-50'
-                  }`}
-                >
-                  <span>{name === 'All' ? 'All products' : name}</span>
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                    isSelected ? 'bg-white/15 text-white' : 'bg-white text-slate-500'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-        
-        {/* Section 1: US Flagship Trending Department Pillars (Cat Food, Gym Food, Smart Gadgets) */}
-        {selectedCategory === 'All' && <section id="trending-departments" className="space-y-6">
+        {/* Section 1: Featured product categories */}
+        {selectedCategory === 'All' && selectedCollection === 'all-products' && <section id="trending-departments" className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-600">
                 <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
-                <span>America's #1 Trending Retail Pillars</span>
+                <span>Featured categories</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">
-                Top Rated by 100,000+ US Amazon Shoppers
+                Explore products by category
               </h2>
             </div>
             <span className="text-xs text-slate-500 font-mono">
-              Independent Austin & Seattle Lab Tests
+              Browse the current product selection
             </span>
           </div>
 
@@ -805,7 +792,7 @@ export default function App() {
                     onClick={(e) => handleBuyNow(catFoodProduct, e)}
                     className="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Buy on Amazon (Prime)</span>
+                    <span>{storeSettings.purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -878,7 +865,7 @@ export default function App() {
                     onClick={(e) => handleBuyNow(gymProteinProduct, e)}
                     className="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Buy on Amazon (Prime)</span>
+                    <span>{storeSettings.purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -951,7 +938,7 @@ export default function App() {
                     onClick={(e) => handleBuyNow(kitchenProduct, e)}
                     className="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Buy on Amazon (Prime)</span>
+                    <span>{storeSettings.purchaseButtonLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -960,15 +947,37 @@ export default function App() {
           </div>
         </section>}
 
-        {/* Section 2: Complete Curated Amazon US Bestsellers Grid */}
+        {/* Section 2: Product collections */}
         <section id="deals" className="space-y-6 pt-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div role="group" aria-label="Filter products by collection" className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
+              {collectionOptions.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={selectedCollection === id}
+                  onClick={() => setSelectedCollection(id)}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition-colors sm:text-sm ${
+                    selectedCollection === id
+                      ? 'border-slate-950 bg-slate-950 text-white shadow-sm'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-400 hover:bg-amber-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] leading-5 text-slate-500 sm:max-w-sm sm:text-right">
+              {storeSettings.retailerName.toLowerCase() === 'amazon'
+                ? `As an Amazon Associate, ${storeSettings.shopName} earns from qualifying purchases.`
+                : `${storeSettings.shopName} may earn a commission from qualifying purchases through ${storeSettings.retailerName} links.`}
+            </p>
+          </div>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
-                Verified Benchmark Collection
-              </div>
+              <div className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">Product collection</div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">
-                All Curated Products & Direct Amazon US Deals
+                {collectionOptions.find(({ id }) => id === selectedCollection)?.label}
               </h2>
             </div>
             <div className="text-xs text-slate-500 font-mono">
@@ -978,16 +987,27 @@ export default function App() {
 
           {filteredProducts.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 space-y-3">
-              <p className="text-base font-bold text-slate-700">No products found matching your search</p>
-              <p className="text-xs text-slate-500">Try searching for "Cat Food", "Whey Protein", "Air Fryer", or "Monitor".</p>
+              <p className="text-base font-bold text-slate-700">
+                {selectedCollection === 'best-sellers'
+                  ? 'No confirmed best sellers in this category yet.'
+                  : selectedCollection === 'new-arrivals'
+                    ? 'No new arrivals from the last 30 days in this category.'
+                    : 'No products found in this category.'}
+              </p>
+              <p className="text-xs text-slate-500">
+                {selectedCollection === 'best-sellers'
+                  ? 'Products appear here after you mark them in Admin based on confirmed retailer sales.'
+                  : 'Try another category or choose All Products.'}
+              </p>
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('All');
+                  setSelectedCollection('all-products');
                 }}
                 className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold cursor-pointer"
               >
-                Reset Department Filters
+                Reset filters
               </button>
             </div>
           ) : (
@@ -998,18 +1018,23 @@ export default function App() {
                   product={product}
                   onSelect={handleSelectProduct}
                   onBuyNow={handleBuyNow}
+                  retailerName={storeSettings.retailerName}
+                  purchaseButtonLabel={storeSettings.purchaseButtonLabel}
                 />
               ))}
             </div>
           )}
         </section>
 
-        {/* Section 3: US Buyer's Comparison Matrix, Methodologies & FAQs */}
+        {/* Section 3: Product comparisons */}
         <div id="comparison">
           <BuyerComparisonTable
             products={products}
             onSelectProduct={handleSelectProduct}
             onBuyNow={handleBuyNow}
+            retailerName={storeSettings.retailerName}
+            purchaseButtonLabel={storeSettings.purchaseButtonLabel}
+            shopName={storeSettings.shopName}
           />
         </div>
 
@@ -1019,14 +1044,14 @@ export default function App() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,360px)] md:items-end md:gap-6">
               <div className="min-w-0">
                 <div className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
-                  Hands-On Video Testing Lab
+                  Product videos
                 </div>
                 <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-950 tracking-tight leading-tight">
-                  Watch Video Reviews Before You Buy on Amazon
+                  Watch product videos before you shop
                 </h2>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 md:justify-self-end">
-                Acoustic noise tests, cat food taste & nutrition reviews, protein shake mixability tests, and dual-zone air frying demonstrations.
+                Video availability and content vary by product.
               </p>
             </div>
 
@@ -1101,7 +1126,7 @@ export default function App() {
         <section id="social-concierge" className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 lg:p-12 border border-slate-800 space-y-6">
           <div className="max-w-2xl space-y-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-              OmniChannel US Concierge
+              Contact and product questions
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Have Questions About a Product or Deal? Ask Us Anywhere.
@@ -1153,7 +1178,7 @@ export default function App() {
                 </div>
               </div>
               <p className="text-xs text-slate-500 max-w-lg">
-                Kefayaan is an official Amazon Associate storefront curated with premium pet food, sports nutrition, smart home gadgets, and tech electronics with verified Amazon Prime delivery.
+                Browse product information and buying guides, then continue to the retailer to complete your purchase.
               </p>
             </div>
 
@@ -1165,20 +1190,20 @@ export default function App() {
                 onClick={() => store.trackOfficialStoreClick()}
                 className="font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
               >
-                <span>Amazon Official Store</span>
+                <span>Shop at {storeSettings.retailerName}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
               <button
                 onClick={() => handleScrollTo('departments')}
                 className="hover:text-slate-950 cursor-pointer"
               >
-                Trending Departments
+                Categories
               </button>
               <button
                 onClick={() => handleScrollTo('deals')}
                 className="hover:text-slate-950 cursor-pointer"
               >
-                Best Sellers
+                Browse products
               </button>
               <button
                 onClick={() => handleScrollTo('comparison')}
@@ -1215,10 +1240,12 @@ export default function App() {
 
           <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
             <p>
-              © {new Date().getFullYear()} Kefayaan. Amazon Associate Partner. Fully compliant with Vercel SPA deployment.
+              © {new Date().getFullYear()} Kefayaan.
             </p>
             <p className="text-center sm:text-right max-w-md">
-              FTC Disclosure: Kefayaan is an Amazon Associate. We earn from qualifying purchases with zero price markup to you. Amazon and Amazon Prime are registered trademarks of Amazon.com, Inc.
+              {storeSettings.retailerName.toLowerCase() === 'amazon'
+                ? `As an Amazon Associate, ${storeSettings.shopName} earns from qualifying purchases.`
+                : `${storeSettings.shopName} may earn a commission from qualifying purchases through ${storeSettings.retailerName} links.`}
             </p>
           </div>
         </div>
@@ -1230,6 +1257,9 @@ export default function App() {
         onClose={handleCloseProductPage}
         onBuyNow={(prod, customUrl) => handleBuyNow(prod, undefined, customUrl)}
         onOpenSocialLinks={handleOpenSocialHub}
+        retailerName={storeSettings.retailerName}
+        purchaseButtonLabel={storeSettings.purchaseButtonLabel}
+        shopName={storeSettings.shopName}
       />
 
 

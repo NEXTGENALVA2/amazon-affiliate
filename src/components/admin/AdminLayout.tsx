@@ -81,7 +81,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-400 hover:text-amber-300 hover:bg-slate-800 transition-colors"
-              title="Amazon Official Store"
+              title="Retailer Storefront"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Amazon Store</span>

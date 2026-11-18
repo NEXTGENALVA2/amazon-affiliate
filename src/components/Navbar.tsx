@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Lock, Menu, X, BarChart3, ExternalLink } from 'lucide-react';
+import { Lock, Menu, X, BarChart3, ExternalLink } from 'lucide-react';
 import { store } from '../services/store';
-import { StoreSettings } from '../types';
+import { CatalogView, StoreSettings } from '../types';
 
 interface NavbarProps {
   isAdminLoggedIn: boolean;
@@ -10,6 +10,11 @@ interface NavbarProps {
   onOpenSocialHub: () => void;
   onGoHome: () => void;
   onScrollToSection: (sectionId: string) => void;
+  categories: string[];
+  selectedCategory: string;
+  onSelectCategory: (category: string) => void;
+  selectedCollection: CatalogView;
+  onSelectCollection: (collection: CatalogView) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,6 +24,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSocialHub,
   onGoHome,
   onScrollToSection,
+  categories,
+  selectedCategory,
+  onSelectCategory,
+  selectedCollection,
+  onSelectCollection,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(store.getStoreSettings());
@@ -40,14 +50,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-      {/* FTC Affiliate Transparency Notice Banner */}
-      <div className="bg-slate-950 text-slate-300 text-[11px] py-1.5 px-3 sm:px-4 text-center border-b border-slate-800 flex items-center justify-center gap-2">
-        <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-        <span className="leading-tight">
-          As an Amazon Associate, <strong className="text-white">{storeSettings.shopName}</strong> earns from qualifying purchases with Prime benefits at zero extra cost to you.
-        </span>
-      </div>
-
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-6 px-3 sm:px-6 lg:px-8 h-16 sm:h-18">
         {/* Zone 1: Kefayaan Brand with Official Logo */}
         <a
@@ -78,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </div>
             <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium tracking-wide uppercase truncate">
-              Amazon Official Associate Store
+              Curated product picks
             </p>
           </div>
         </a>
@@ -86,16 +88,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Zone 2: Navigation Links (Desktop & Wide Tablet) */}
         <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-600">
           <button
-            onClick={() => onScrollToSection('deals')}
+            onClick={() => {
+              onSelectCollection('best-sellers');
+              onScrollToSection('deals');
+            }}
             className="hover:text-slate-950 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            US Best Sellers
+            Best Sellers
           </button>
           <button
             onClick={() => onScrollToSection('departments')}
             className="hover:text-slate-950 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
-            Trending Departments
+            Categories
           </button>
           <button
             onClick={() => onScrollToSection('comparison')}
@@ -120,19 +125,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: Amazon Official Store Button + Admin + Mobile Hamburger */}
+        {/* Zone 3: Retailer Button + Admin + Mobile Hamburger */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Prominent Amazon Official Store Affiliate Button */}
           <a
             href={storeSettings.amazonOfficialStoreUrl}
             target="_blank"
             rel="noopener noreferrer nofollow"
             onClick={handleOfficialStoreClick}
             className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-xs transition-all hover:scale-102 cursor-pointer border border-amber-500/80 shrink-0"
-            title="Visit Kefayaan Official Store on Amazon"
+            title={`Browse products at ${storeSettings.retailerName}`}
           >
-            <span className="hidden sm:inline">Amazon Official Store</span>
-            <span className="sm:hidden font-bold">Amazon Store</span>
+            <span className="hidden sm:inline">Shop at {storeSettings.retailerName}</span>
+            <span className="sm:hidden font-bold">Shop {storeSettings.retailerName}</span>
             <ExternalLink className="w-3.5 h-3.5 text-slate-950 shrink-0" />
           </a>
 
@@ -171,7 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <>
           {/* Backdrop */}
           <div
-            className="xl:hidden fixed inset-0 top-[100px] z-30 bg-slate-950/40 backdrop-blur-xs"
+            className="xl:hidden fixed inset-0 top-[64px] z-30 bg-slate-950/40 backdrop-blur-xs"
             onClick={() => setMobileMenuOpen(false)}
           />
 
@@ -186,23 +190,54 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className="flex items-center justify-between p-3.5 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs shadow-xs"
             >
-              <span>Visit Official Amazon Store ({storeSettings.shopName})</span>
+              <span>Browse products at {storeSettings.retailerName}</span>
               <ExternalLink className="w-4 h-4" />
             </a>
 
             <div className="space-y-1 pt-1">
-              <button
-                onClick={() => handleNavClick('deals')}
-                className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
-              >
-                🔥 US Best Sellers
-              </button>
-              <button
-                onClick={() => handleNavClick('departments')}
-                className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
-              >
-                🏷️ Trending Departments
-              </button>
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Categories</p>
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  aria-pressed={selectedCategory.toLowerCase() === category.toLowerCase()}
+                  onClick={() => {
+                    onSelectCategory(category);
+                    handleNavClick('deals');
+                  }}
+                  className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                    selectedCategory.toLowerCase() === category.toLowerCase()
+                      ? 'bg-slate-950 text-white'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                  }`}
+                >
+                  {category === 'All' ? 'All categories' : category}
+                </button>
+              ))}
+              <p className="px-3 pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Collections</p>
+              {([
+                ['best-sellers', 'Best Sellers'],
+                ['all-products', 'All Products'],
+                ['new-arrivals', 'New Arrivals'],
+              ] as const).map(([collection, label]) => (
+                <button
+                  key={collection}
+                  type="button"
+                  aria-pressed={selectedCollection === collection}
+                  onClick={() => {
+                    onSelectCollection(collection);
+                    handleNavClick('deals');
+                  }}
+                  className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                    selectedCollection === collection
+                      ? 'bg-slate-950 text-white'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              <div className="my-2 border-t border-slate-100" />
               <button
                 onClick={() => handleNavClick('comparison')}
                 className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"

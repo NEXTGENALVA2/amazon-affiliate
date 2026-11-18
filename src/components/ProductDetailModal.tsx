@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, ExternalLink, Star, Play, CheckCircle2, ShieldCheck, Truck, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check } from 'lucide-react';
+import { X, ExternalLink, Star, Play, CheckCircle2, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
 import { getProductPath } from '../utils/productRoutes';
@@ -9,6 +9,9 @@ interface ProductDetailModalProps {
   onClose: () => void;
   onBuyNow: (product: Product, customUrl?: string) => void;
   onOpenSocialLinks: () => void;
+  retailerName: string;
+  purchaseButtonLabel: string;
+  shopName: string;
   isPage?: boolean;
 }
 
@@ -17,6 +20,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onClose,
   onBuyNow,
   onOpenSocialLinks,
+  retailerName,
+  purchaseButtonLabel,
+  shopName,
   isPage = false,
 }) => {
   const hasVariants = Boolean(product?.variants?.length);
@@ -24,7 +30,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const activeVariant = hasVariants ? product?.variants?.[selectedVariantIdx] : null;
   const currentPrice = activeVariant?.price !== undefined ? activeVariant.price : product?.price ?? 0;
   const currentDealPrice = activeVariant?.dealPrice !== undefined ? activeVariant.dealPrice : product?.dealPrice ?? 0;
-  const currentAmazonUrl = activeVariant?.amazonUrl || product?.amazonUrl || '';
+  const currentRetailerUrl = activeVariant?.amazonUrl || product?.amazonUrl || '';
 
   const allImages = useMemo(() => {
     if (!product) return [];
@@ -284,7 +290,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </h2>
 
               {/* Rating */}
-              <div className="flex items-center gap-2 text-xs">
+              {product.rating > 0 && <div className="flex items-center gap-2 text-xs">
                 <div className="flex items-center gap-1 text-slate-900 font-semibold">
                   <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                   <span className="font-mono tabular-nums">
@@ -293,13 +299,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
                 <span className="text-slate-400">·</span>
                 <span className="text-slate-500 font-medium">
-                  {product.reviewCount !== undefined ? Number(product.reviewCount).toLocaleString() : '1,500'} Amazon customer ratings
+                  {product.reviewCount > 0 ? `${Number(product.reviewCount).toLocaleString()} customer ratings` : 'Customer rating'}
                 </span>
-              </div>
+              </div>}
 
               {/* Price Display */}
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                <div className="text-xs text-slate-500">Amazon Verified Deal Price:</div>
+                <div className="text-xs text-slate-500">Current listed price:</div>
                 <div className="flex items-baseline gap-3">
                   <span className="text-2xl sm:text-3xl font-extrabold text-slate-950 font-mono tabular-nums">
                     {formatCurrency(currentDealPrice)}
@@ -363,10 +369,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {/* Purchase actions stay near price and variants instead of the end of long page content. */}
               <div className="space-y-3 pt-4 border-t border-slate-200">
                 <button
-                  onClick={() => onBuyNow(product, currentAmazonUrl)}
+                  onClick={() => onBuyNow(product, currentRetailerUrl)}
                   className="w-full flex items-center justify-center gap-2 py-3 px-6 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer group"
                 >
-                  <span>Buy Now on Amazon</span>
+                  <span>{purchaseButtonLabel}</span>
                   <ExternalLink className="w-4 h-4 text-slate-950 group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
@@ -379,7 +385,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </button>
 
                 <p className="text-[10px] text-slate-400 text-center leading-tight">
-                  Clicking opens official Amazon page in a secure new tab. Affiliate tracking applies without altering your purchase price.
+                  You will continue to the retailer's website to complete your purchase. Price and availability may change.
+                </p>
+                <p className="text-[10px] text-slate-500 text-center leading-tight">
+                  {retailerName.toLowerCase() === 'amazon'
+                    ? `As an Amazon Associate, ${shopName} earns from qualifying purchases.`
+                    : `${shopName} may earn a commission from qualifying purchases through ${retailerName} links.`}
                 </p>
               </div>
 
@@ -398,17 +409,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </ul>
               </div>
 
-              {/* Trust Badges */}
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-2 border-t border-slate-100">
-                <div className="flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>Free Amazon Prime Delivery</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>Official Warranty Coverage</span>
-                </div>
-              </div>
+              <p className="border-t border-slate-100 pt-3 text-center text-[11px] text-slate-500">
+                Review shipping, return, and warranty details on the retailer's product page.
+              </p>
             </div>
 
           </div>
@@ -416,12 +419,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           {/* Keep long-form copy below the media and purchase module on every screen size. */}
           <div className="order-3 space-y-2 border-t border-slate-100 pt-4 md:order-none md:col-span-12">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-              Product Description & US Buying Guide
+              Product Description
             </h4>
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
               <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
                 {product.description ||
-                  'Verified authentic US stock. Sourced directly from Amazon-certified suppliers with verified serial numbers, factory-sealed packaging, and full manufacturer warranty.'}
+                  'Product details have not been added yet.'}
               </p>
             </div>
           </div>

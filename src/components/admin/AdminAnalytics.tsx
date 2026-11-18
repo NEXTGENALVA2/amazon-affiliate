@@ -3,7 +3,6 @@ import {
   Users,
   MousePointerClick,
   TrendingUp,
-  DollarSign,
   Calendar,
   Download,
   Smartphone,
@@ -15,6 +14,7 @@ import { store } from '../../services/store';
 import { formatCurrency } from '../../utils/helpers';
 
 export const AdminAnalytics: React.FC = () => {
+  const retailerName = store.getStoreSettings().retailerName;
   const [filterPeriod, setFilterPeriod] = useState<'today' | '7days' | 'this_month' | '30days' | 'yearly' | 'all'>('this_month');
   const [hoveredPoint, setHoveredPoint] = useState<{ date: string; visitors: number; clicks: number } | null>(null);
 
@@ -25,7 +25,7 @@ export const AdminAnalytics: React.FC = () => {
   // Export Clicks to CSV
   const handleExportCSV = () => {
     const rows = [
-      ['Timestamp', 'Date', 'Product Title', 'Device', 'Amazon Target URL'],
+      ['Timestamp', 'Date', 'Product Title', 'Device', 'Retailer Target URL'],
       ...analytics.recentClicks.map((c) => [
         c.timestamp,
         c.date,
@@ -39,7 +39,7 @@ export const AdminAnalytics: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `auragear_clicks_${filterPeriod}.csv`);
+    link.setAttribute('download', `kefayaan_clicks_${filterPeriod}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -57,7 +57,7 @@ export const AdminAnalytics: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold text-slate-950">Visitor & Affiliate Clicks Analytics</h2>
           <p className="text-xs text-slate-500">
-            Real-time tracking of daily visitors, monthly trends, and outbound Amazon link conversions
+            Visitor trends and outbound clicks to {retailerName}
           </p>
         </div>
 
@@ -106,49 +106,51 @@ export const AdminAnalytics: React.FC = () => {
         </div>
       </div>
 
-      {/* Amazon Associates Sales & Order Tracking Explainer Banner */}
+      {/* Affiliate sales and order tracking information */}
       <div className="bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border border-amber-300/60 rounded-2xl p-5 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-              <span>Amazon Associates Attribution Guide</span>
+              <span>Affiliate Sales Tracking</span>
             </div>
             <h3 className="text-base font-bold text-slate-950">
-              How to verify actual Amazon sales & confirmed commissions
+              How to verify confirmed sales and commissions
             </h3>
             <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-              Kefayaan tracks 100% of incoming visitors, device types, and every exact click on &quot;Buy on Amazon&quot;. Due to Amazon&apos;s customer payment privacy &amp; security policies, confirmed order receipts are recorded directly in your official <strong>Amazon Associates Central</strong> portal via your 24-hour affiliate tracking cookie.
+              Kefayaan records storefront visits and outbound retailer clicks. These clicks are not confirmed sales; verify orders and commissions in your {retailerName} affiliate dashboard.
             </p>
           </div>
 
-          <a
-            href="https://affiliate-program.amazon.com/home/reports"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer"
-          >
-            <span>Open Amazon Associates Reports</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          {retailerName.toLowerCase() === 'amazon' && (
+            <a
+              href="https://affiliate-program.amazon.com/home/reports"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer"
+            >
+              <span>Open Amazon Associates Reports</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-amber-200/50 text-xs text-slate-700">
           <div className="p-3 bg-white/80 rounded-xl border border-amber-200/40 space-y-1">
-            <span className="font-bold text-slate-950 block">1. Outbound Tracking (Here)</span>
+            <span className="font-bold text-slate-950 block">1. Outbound clicks (here)</span>
             <p className="text-[11px] text-slate-500 leading-normal">
-              Every click on this website records the exact timestamp, product variant, device, and your unique Amazon tag.
+              This dashboard records each retailer link click, product, and device.
             </p>
           </div>
           <div className="p-3 bg-white/80 rounded-xl border border-amber-200/40 space-y-1">
-            <span className="font-bold text-slate-950 block">2. 24h &amp; 90d Cookie Window</span>
+            <span className="font-bold text-slate-950 block">2. Retailer attribution</span>
             <p className="text-[11px] text-slate-500 leading-normal">
-              Once a visitor clicks, Amazon attaches your affiliate cookie for 24 hours (or 90 days if added to their Amazon cart).
+              Attribution rules and reporting windows depend on the affiliate program.
             </p>
           </div>
           <div className="p-3 bg-white/80 rounded-xl border border-amber-200/40 space-y-1">
-            <span className="font-bold text-slate-950 block">3. Amazon Central Report</span>
+            <span className="font-bold text-slate-950 block">3. Confirmed sales</span>
             <p className="text-[11px] text-slate-500 leading-normal">
-              Amazon updates hourly with exact ordered items, shipped units, conversion rate, and commission dollars earned.
+              Check your retailer affiliate dashboard for orders, shipped units, and commissions.
             </p>
           </div>
         </div>
@@ -170,17 +172,17 @@ export const AdminAnalytics: React.FC = () => {
           </div>
         </div>
 
-        {/* Outbound Amazon Clicks */}
+        {/* Outbound retailer clicks */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Outbound Amazon Clicks</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Outbound {retailerName} Clicks</span>
             <MousePointerClick className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono tabular-nums">
             {analytics.totalClicks.toLocaleString()}
           </div>
           <div className="text-xs text-slate-500">
-            Direct redirects to Amazon Buy Now
+            Clicks to product pages on {retailerName}
           </div>
         </div>
 
@@ -194,21 +196,21 @@ export const AdminAnalytics: React.FC = () => {
             {analytics.clickRate}%
           </div>
           <div className="text-xs text-slate-500">
-            Percentage of visitors clicking Amazon deals
+            Percentage of visitors clicking retailer product links
           </div>
         </div>
 
-        {/* Estimated Commission */}
+        {/* Confirmed affiliate earnings */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Est. Amazon Earnings</span>
-            <DollarSign className="w-4 h-4 text-indigo-500" />
+            <span className="text-xs font-bold uppercase tracking-wider">Confirmed Earnings</span>
+            <ExternalLink className="w-4 h-4 text-indigo-500" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-950 font-mono tabular-nums">
-            ${analytics.estimatedEarnings}
+          <div className="text-lg font-extrabold text-slate-950">
+            Check affiliate report
           </div>
           <div className="text-xs text-slate-500">
-            Based on average ~3.5% Associate commission
+            Orders and commissions are not reported by outbound-click analytics.
           </div>
         </div>
       </div>
@@ -218,7 +220,7 @@ export const AdminAnalytics: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-bold text-slate-900">
-              Visitor Traffic & Amazon Outbound Clicks Over Time
+              Visitor Traffic &amp; {retailerName} Outbound Clicks Over Time
             </h3>
             <p className="text-xs text-slate-500">
               Hover over points to see exact daily / monthly numbers
@@ -231,7 +233,7 @@ export const AdminAnalytics: React.FC = () => {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-amber-400" />
-              <span>Amazon Clicks</span>
+              <span>{retailerName} Clicks</span>
             </div>
           </div>
         </div>
@@ -274,7 +276,7 @@ export const AdminAnalytics: React.FC = () => {
                     <span className="font-mono tabular-nums font-bold">{hoveredPoint.visitors}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-400">Amazon Clicks:</span>
+                    <span className="text-slate-400">{retailerName} Clicks:</span>
                     <span className="font-mono tabular-nums font-bold text-amber-300">{hoveredPoint.clicks}</span>
                   </div>
                 </div>
@@ -300,7 +302,7 @@ export const AdminAnalytics: React.FC = () => {
         {/* Top Clicked Products */}
         <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">Top Performing Products (By Amazon Clicks)</h3>
+            <h3 className="text-sm font-bold text-slate-900">Top Products (By Retailer Clicks)</h3>
             <span className="text-xs text-slate-400 font-mono tabular-nums">
               {analytics.topClickedProducts.length} items with clicks
             </span>
@@ -311,7 +313,7 @@ export const AdminAnalytics: React.FC = () => {
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-3 font-semibold">Product Title</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Amazon Clicks</th>
+                  <th className="py-2.5 px-3 font-semibold text-right">Retailer Clicks</th>
                   <th className="py-2.5 px-3 font-semibold text-right">Share of Total</th>
                 </tr>
               </thead>
@@ -392,8 +394,8 @@ export const AdminAnalytics: React.FC = () => {
       <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Recent Outbound Amazon Clicks Log</h3>
-            <p className="text-xs text-slate-500">Recorded when visitors click the 'Buy on Amazon' CTA</p>
+            <h3 className="text-sm font-bold text-slate-900">Recent Outbound Retailer Clicks</h3>
+            <p className="text-xs text-slate-500">Recorded when visitors use a product link</p>
           </div>
           <button
             onClick={handleExportCSV}
@@ -411,7 +413,7 @@ export const AdminAnalytics: React.FC = () => {
                 <th className="py-2 px-3 font-semibold">Timestamp</th>
                 <th className="py-2 px-3 font-semibold">Product</th>
                 <th className="py-2 px-3 font-semibold">Device</th>
-                <th className="py-2 px-3 font-semibold">Amazon Affiliate Link</th>
+                <th className="py-2 px-3 font-semibold">Retailer Product Link</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

@@ -8,12 +8,16 @@ interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
   onBuyNow: (product: Product, e: React.MouseEvent, variantUrl?: string) => void;
+  retailerName: string;
+  purchaseButtonLabel: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onSelect,
   onBuyNow,
+  retailerName,
+  purchaseButtonLabel,
 }) => {
   const hasVariants = product.variants && product.variants.length > 0;
   const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
@@ -22,7 +26,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const currentPrice = activeVariant?.price !== undefined ? activeVariant.price : product.price;
   const currentDealPrice = activeVariant?.dealPrice !== undefined ? activeVariant.dealPrice : product.dealPrice;
-  const currentAmazonUrl = activeVariant?.amazonUrl || product.amazonUrl;
+  const currentRetailerUrl = activeVariant?.amazonUrl || product.amazonUrl;
+  const isAmazonRetailer = retailerName.trim().toLowerCase() === 'amazon';
+  const isAmazonSpecificBadge = /amazon|prime/i.test(product.badge || '');
+  const isBestSellerBadge = /best seller/i.test(product.badge || '');
+  const showBadge = Boolean(
+    product.badge &&
+    (!isAmazonSpecificBadge || isAmazonRetailer) &&
+    (!isBestSellerBadge || product.isBestSeller)
+  );
 
   const discountPercent =
     currentPrice > currentDealPrice
@@ -149,7 +161,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {/* Badge (e.g. Amazon's Choice, Best Seller) */}
-        {product.badge && (
+        {showBadge && (
           <div className="absolute top-3 right-3 px-2.5 py-1 bg-amber-400 text-slate-950 text-[11px] font-bold rounded-md shadow-xs z-10">
             {product.badge}
           </div>
@@ -189,15 +201,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <span className="inline-block px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/70 text-[10px] font-bold uppercase tracking-wider truncate max-w-[140px] sm:max-w-[170px]">
             {product.category || 'General'}
           </span>
-          <div className="flex items-center gap-1 text-slate-700 text-xs shrink-0">
+          {product.rating > 0 && <div className="flex items-center gap-1 text-slate-700 text-xs shrink-0">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
             <span className="font-bold tabular-nums">
-              {product.rating !== undefined ? Number(product.rating).toFixed(1) : '4.8'}
+              {Number(product.rating).toFixed(1)}
             </span>
-            <span className="text-slate-400 text-[11px]">
-              ({product.reviewCount !== undefined ? Number(product.reviewCount).toLocaleString() : '1,500'})
-            </span>
-          </div>
+            {product.reviewCount > 0 && (
+              <span className="text-slate-400 text-[11px]">
+                ({Number(product.reviewCount).toLocaleString()})
+              </span>
+            )}
+          </div>}
         </div>
 
         {/* Brand Name */}
@@ -231,7 +245,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </p>
         ) : (
           <p className="text-xs text-slate-400 italic line-clamp-2 leading-relaxed mb-3">
-            Authentic verified Amazon US stock. Prime expedited delivery & official warranty.
+            Product details are not available yet. Check the retailer's page for current information.
           </p>
         )}
 
@@ -302,24 +316,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
               {discountPercent > 0 && (
                 <span className="text-[11px] font-bold text-emerald-600 block">
-                  Save {discountPercent}% on Amazon
+                  Save {discountPercent}% at the listed price
                 </span>
               )}
             </div>
 
-            <span className="text-[10px] sm:text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded shrink-0">
-              Prime Eligible
-            </span>
           </div>
 
-          {/* Action Row: Solely Buy on Amazon (No Add to Cart button) */}
+          {/* Retailer checkout is handled on the external product page. */}
           <div className="grid grid-cols-1 gap-2 pt-1">
             <button
-              onClick={(e) => onBuyNow(product, e, currentAmazonUrl)}
+              onClick={(e) => onBuyNow(product, e, currentRetailerUrl)}
               className="w-full min-h-[42px] flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer group/btn"
-              title="Open Amazon Affiliate Page"
+              title={`Open product page at ${retailerName}`}
             >
-              <span>Buy on Amazon</span>
+              <span>{purchaseButtonLabel}</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-900 group-hover/btn:translate-x-0.5 transition-transform shrink-0" />
             </button>
           </div>
