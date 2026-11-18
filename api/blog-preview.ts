@@ -54,6 +54,9 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string):
     <meta name="description" content="${escapeHtml(description)}">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapeHtml(url)}">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.ico">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:type" content="article">
     <meta property="og:title" content="${escapeHtml(title)}">
@@ -103,6 +106,9 @@ const renderIndex = (origin: string): string => {
     <meta name="description" content="${description}">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${url}">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.ico">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:type" content="website">
     <meta property="og:title" content="${title}">

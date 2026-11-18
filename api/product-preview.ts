@@ -12,6 +12,16 @@ const escapeHtml = (value: string): string =>
     "'": '&#39;',
   })[character] || character);
 
+const getSafeImageUrl = (image: string | null | undefined, origin: string): string | undefined => {
+  if (typeof image !== 'string' || !image.trim()) return undefined;
+  try {
+    const url = new URL(image, origin);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const getShareImage = async (image: string, origin: string, routeSlug: string): Promise<{ url: string; optimized: boolean }> => {
   const imageUrl = new URL(image, origin);
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -60,8 +70,17 @@ export default async function handler(request: IncomingMessage, response: Server
     const origin = getSiteOrigin(request);
     const canonicalUrl = new URL(getProductPath(product), origin).href;
     const title = `${product.title} | Kefayaan`;
-    const description = product.description?.trim().slice(0, 300) ||
+    const productDescription = product.description?.trim() || '';
+    const description = productDescription.replace(/\s+/g, ' ').slice(0, 300) ||
       `Explore ${product.title}, including product details, pricing, images, and buying options on Kefayaan.`;
+    const productImageUrls = [...new Set(
+      [product.image, ...(Array.isArray(product.gallery) ? product.gallery : [])]
+        .map((image) => getSafeImageUrl(image, origin))
+        .filter((image): image is string => Boolean(image)),
+    )];
+    const safePrice = Number.isFinite(product.dealPrice) && product.dealPrice > 0
+      ? product.dealPrice.toFixed(2)
+      : null;
     let imageUrl = new URL('/assets/aistudio/DP_af5fa802.png', origin).href;
     let hasOptimizedImage = false;
     try {
@@ -79,23 +98,45 @@ export default async function handler(request: IncomingMessage, response: Server
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.title,
-      description,
-      image: imageUrl,
+      description: productDescription || description,
+      image: productImageUrls.length ? productImageUrls : undefined,
       brand: product.brand ? { '@type': 'Brand', name: product.brand } : undefined,
       category: product.category,
-      offers: {
+      offers: safePrice ? {
         '@type': 'Offer',
         url: canonicalUrl,
         priceCurrency: 'USD',
-        price: product.dealPrice,
+        price: safePrice,
         availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      },
+      } : undefined,
     };
     const jsonLd = JSON.stringify(structuredData).replace(/</g, '\\u003c');
     const escapedTitle = escapeHtml(title);
     const escapedDescription = escapeHtml(description);
     const escapedImage = escapeHtml(imageUrl);
     const escapedUrl = escapeHtml(canonicalUrl);
+    const escapedProductImage = productImageUrls[0] ? escapeHtml(productImageUrls[0]) : '';
+    const productImages = productImageUrls.slice(1).map((image) =>
+      `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy" width="800" height="600">`,
+    ).join('\n      ');
+    const features = (Array.isArray(product.features) ? product.features : [])
+      .filter((feature): feature is string => typeof feature === 'string' && Boolean(feature.trim()))
+      .map((feature) => `<li>${escapeHtml(feature)}</li>`)
+      .join('\n      ');
+    const price = safePrice ? `$${safePrice}` : '';
+    const listPrice = Number.isFinite(product.price) && product.price > product.dealPrice
+      ? `<del>$${product.price.toFixed(2)}</del> `
+      : '';
+    const affiliateUrl = getSafeImageUrl(product.amazonUrl, origin);
+    const purchaseLink = affiliateUrl
+      ? `<p><a href="${escapeHtml(affiliateUrl)}" rel="sponsored nofollow noopener" target="_blank">Check price and availability at the retailer</a></p>`
+      : '';
+    const safeBrand = product.brand ? `<p><strong>Brand:</strong> ${escapeHtml(product.brand)}</p>` : '';
+    const safeCategory = product.category ? `<p><strong>Category:</strong> ${escapeHtml(product.category)}</p>` : '';
+    const availability = product.inStock ? 'In stock' : 'Currently unavailable';
+    const productImageMarkup = escapedProductImage
+      ? `<img src="${escapedProductImage}" alt="${escapeHtml(product.title)}" width="800" height="600" fetchpriority="high">`
+      : '';
     const imageDimensions = hasOptimizedImage
       ? '<meta property="og:image:width" content="1200">\n    <meta property="og:image:height" content="630">'
       : '';
@@ -108,6 +149,9 @@ export default async function handler(request: IncomingMessage, response: Server
     <meta name="description" content="${escapedDescription}">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapedUrl}">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.ico">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:type" content="product">
     <meta property="og:title" content="${escapedTitle}">
@@ -123,7 +167,25 @@ export default async function handler(request: IncomingMessage, response: Server
     <meta name="twitter:image:alt" content="${escapeHtml(product.title)}">
     <script type="application/ld+json">${jsonLd}</script>
   </head>
-  <body><a href="${escapedUrl}">${escapedTitle}</a></body>
+  <body>
+    <header><a href="/">Kefayaan</a> <a href="/blog">Buying Guides</a></header>
+    <main>
+      <nav aria-label="Breadcrumb"><a href="/">Home</a> &rsaquo; <a href="/">Products</a> &rsaquo; ${escapeHtml(product.title)}</nav>
+      <article>
+        <h1>${escapeHtml(product.title)}</h1>
+        ${safeBrand}
+        ${safeCategory}
+        ${productImageMarkup}
+        ${productImages}
+        <p>${escapeHtml(productDescription || description)}</p>
+        ${features ? `<h2>Product details</h2><ul>${features}</ul>` : ''}
+        ${price ? `<p><strong>${listPrice}${price}</strong></p>` : ''}
+        <p>Availability: ${availability}. Price and availability can change; confirm current details with the retailer.</p>
+        ${purchaseLink}
+        <p>Affiliate disclosure: Kefayaan may earn a commission from qualifying purchases through retailer links.</p>
+      </article>
+    </main>
+  </body>
 </html>`;
     sendHtml(response, 200, request.method === 'HEAD' ? '' : html);
   } catch (error) {

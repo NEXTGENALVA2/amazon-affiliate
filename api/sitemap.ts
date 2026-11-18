@@ -4,21 +4,11 @@ import { getSiteOrigin } from './siteOrigin.js';
 import { slugifyProductTitle } from '../src/utils/productRoutes.js';
 import { BLOG_ARTICLES } from '../src/data/blog.js';
 
-const products = [
-  ["Nature's Harvest Grain-Free Wild Salmon & Organic Chicken Wet Cat Food (24 Cans)", 'prod-cat-food'],
-  ['Optimum Nutrition Gold Standard 100% Whey Protein Isolate (5 lbs, Vanilla Bean)', 'prod-gym-protein'],
-  ['Ninja Foodi XL DualZone 10-Qt 2-Basket Digital Smart Air Fryer with Match Cook', 'prod-kitchen-airfryer'],
-  ['Samsung Odyssey Neo G9 49" Curved Dual QHD 240Hz Mini-LED Gaming Monitor', 'prod-1'],
-  ['Sony WH-1000XM5 Premium Noise Canceling Wireless Headphones', 'prod-2'],
-  ['Keychron Q1 Pro Wireless Custom Mechanical Keyboard (QMK/VIA)', 'prod-3'],
-  ['Herman Miller Aeron Ergonomic Chair - Graphite Mineral Polished', 'prod-4'],
-];
-
 const getProductUrls = async (origin: string): Promise<string[]> => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
-    return products.map(([title]) => `${origin}/products/${slugifyProductTitle(title)}`);
+    throw new Error('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required to generate product sitemap URLs.');
   }
 
   const client = createClient(supabaseUrl, supabaseAnonKey);
@@ -33,13 +23,9 @@ const getProductUrls = async (origin: string): Promise<string[]> => {
       typeof product.id === 'string' &&
       typeof product.title === 'string');
 
-  const urls = records.map((product) => {
-    return `${origin}/products/${slugifyProductTitle(product.title || product.slug || 'product')}`;
-  });
-  return [...new Set([
-    ...products.map(([title]) => `${origin}/products/${slugifyProductTitle(title)}`),
-    ...urls,
-  ])];
+  return [...new Set(records.map((product) =>
+    `${origin}/products/${slugifyProductTitle(product.title || product.slug || 'product')}`,
+  ))];
 };
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
