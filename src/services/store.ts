@@ -63,7 +63,7 @@ const DEFAULT_PIXEL_SETTINGS: PixelSettings = {
   tiktokEnabled: true,
   googleTagId: '',
   googleEnabled: true,
-  pinterestTagId: '2613020754632',
+  pinterestTagId: '2613147349496',
   pinterestEnabled: true,
   trackAsOrder: true,
   trackInitiateCheckout: true,
@@ -1008,7 +1008,12 @@ class StoreService {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PIXEL_SETTINGS);
       if (saved) {
-        return { ...DEFAULT_PIXEL_SETTINGS, ...JSON.parse(saved) };
+        const settings = { ...DEFAULT_PIXEL_SETTINGS, ...JSON.parse(saved) };
+        if (settings.pinterestTagId === '2613020754632') {
+          settings.pinterestTagId = DEFAULT_PIXEL_SETTINGS.pinterestTagId;
+          localStorage.setItem(STORAGE_KEYS.PIXEL_SETTINGS, JSON.stringify(settings));
+        }
+        return settings;
       }
     } catch {}
     return { ...DEFAULT_PIXEL_SETTINGS };

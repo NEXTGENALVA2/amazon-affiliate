@@ -307,7 +307,7 @@ export const AdminPixelTracking: React.FC = () => {
                 <input
                   type="text"
                   inputMode="numeric"
-                  placeholder="e.g. 2613020754632"
+                  placeholder="e.g. 2613147349496"
                   value={settings.pinterestTagId}
                   onChange={(e) => setSettings({ ...settings, pinterestTagId: e.target.value })}
                   className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-rose-600 focus:bg-white transition-all"
