@@ -121,8 +121,10 @@ export const AdminSocialAccounts: React.FC = () => {
     <div className="space-y-6">
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-950">Store Identity</h2>
-          <p className="mt-1 text-xs text-slate-500">Manage your storefront identity and retailer purchase links.</p>
+          <h2 className="text-lg font-bold text-slate-950">Retailer &amp; Button Settings</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Set the retailer, storefront URL, and button label used across all product links. For example: Buy on Amazon or Shop at Walmart.
+          </p>
         </div>
         <form onSubmit={handleSaveStore} className="grid grid-cols-1 gap-4 text-xs md:grid-cols-2">
           <label className="space-y-1">
@@ -151,7 +153,7 @@ export const AdminSocialAccounts: React.FC = () => {
               maxLength={40}
               value={storeSettings.purchaseButtonLabel}
               onChange={(event) => setStoreSettings((current) => ({ ...current, purchaseButtonLabel: event.target.value }))}
-              placeholder="Buy on Amazon"
+              placeholder="Buy on Amazon or Shop at Walmart"
               className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5"
             />
           </label>

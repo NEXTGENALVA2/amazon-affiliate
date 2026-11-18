@@ -97,7 +97,8 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   const [newFeatureText, setNewFeatureText] = useState('');
   const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
   const [draggedVariantImage, setDraggedVariantImage] = useState<{ variantId: string | null; index: number } | null>(null);
-  const retailerName = store.getStoreSettings().retailerName;
+  const storeSettings = store.getStoreSettings();
+  const retailerName = storeSettings.retailerName;
   const isAmazonRetailer = retailerName.trim().toLowerCase() === 'amazon';
   const formatRetailerUrl = (url: string) => {
     const trimmedUrl = url.trim();
@@ -830,6 +831,9 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     className="w-full pl-9 pr-3.5 py-2 text-xs bg-amber-50/40 border border-amber-300/80 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                   />
                 </div>
+                <p className="text-[10px] leading-4 text-slate-500">
+                  Store-wide button label: <strong>{storeSettings.purchaseButtonLabel}</strong>. Change it in Admin &gt; Store &amp; Links &gt; Retailer &amp; Button Settings.
+                </p>
               </div>
 
               {isAmazonRetailer && (

@@ -70,7 +70,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
                   Admin
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 truncate">Official Associate</p>
+              <p className="text-[10px] text-slate-400 truncate">Store administration</p>
             </div>
           </div>
 
@@ -84,7 +84,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
               title="Retailer Storefront"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Amazon Store</span>
+              <span className="hidden sm:inline">Shop {store.getStoreSettings().retailerName}</span>
             </a>
 
             <button
@@ -156,7 +156,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ onBackToStore, onLogou
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>Social Accounts</span>
+              <span>Store &amp; Links</span>
             </button>
 
             <button
