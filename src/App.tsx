@@ -30,7 +30,7 @@ import { BuyerComparisonTable } from './components/BuyerComparisonTable';
 import { formatCurrency, getYouTubeEmbedUrl } from './utils/helpers';
 import { pixelService } from './services/pixelService';
 import { findProductByRouteSlug, getProductPath, getProductRouteSlug } from './utils/productRoutes';
-import { BLOG_ARTICLES, getBlogArticle } from './data/blog';
+import { BLOG_ARTICLES, getBlogArticle, getRelatedProducts } from './data/blog';
 import { getProductCategoryCounts } from './utils/productCategories';
 
 const setMetaContent = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
@@ -236,6 +236,7 @@ export default function App() {
       },
     };
 
+    const relatedBlogProduct = blogArticle ? getRelatedProducts(blogArticle, products, 1)[0] : undefined;
     if (isBlogPage) {
       const blogUrl = blogSlug ? `${origin}/blog/${blogSlug}` : `${origin}/blog`;
       const blogTitle = blogArticle ? `${blogArticle.title} | Kefayaan` : 'Kefayaan Buying Guides';
@@ -243,12 +244,23 @@ export default function App() {
         'Practical buying guides and checklists for comparing products, features, fit, and purchase terms.';
       title = blogTitle;
       description = blogDescription;
+      image = relatedBlogProduct?.image || storeSettings.socialPreviewImageUrl;
       robots = blogSlug && !blogArticle ? 'noindex,follow' : 'index,follow';
       structuredData = blogArticle ? {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
         headline: blogArticle.title,
         description: blogArticle.description,
+        ...(relatedBlogProduct
+          ? {
+              image: [new URL(relatedBlogProduct.image, origin).href],
+              mentions: [{
+                '@type': 'Product',
+                name: relatedBlogProduct.title,
+                url: new URL(getProductPath(relatedBlogProduct), origin).href,
+              }],
+            }
+          : {}),
         datePublished: blogArticle.publishedAt,
         dateModified: blogArticle.publishedAt,
         author: { '@type': 'Organization', name: 'Kefayaan Editorial Team' },
@@ -322,9 +334,11 @@ export default function App() {
     setMetaContent('meta[property="og:type"]', 'property', 'og:type', isBlogPage && blogArticle ? 'article' : routeProduct ? 'product' : 'website');
     setMetaContent('meta[property="og:url"]', 'property', 'og:url', isBlogPage ? `${origin}${blogSlug ? `/blog/${blogSlug}` : '/blog'}` : pageUrl);
     setMetaContent('meta[property="og:image"]', 'property', 'og:image', image ? new URL(image, origin).href : '');
+    setMetaContent('meta[property="og:image:alt"]', 'property', 'og:image:alt', relatedBlogProduct?.title || 'Kefayaan');
     setMetaContent('meta[name="twitter:title"]', 'name', 'twitter:title', title);
     setMetaContent('meta[name="twitter:description"]', 'name', 'twitter:description', description);
     setMetaContent('meta[name="twitter:image"]', 'name', 'twitter:image', image ? new URL(image, origin).href : '');
+    setMetaContent('meta[name="twitter:image:alt"]', 'name', 'twitter:image:alt', relatedBlogProduct?.title || 'Kefayaan');
     if (!isBlogPage) setCanonicalUrl(pageUrl);
 
     let script = document.getElementById('page-structured-data');
@@ -339,7 +353,7 @@ export default function App() {
     } else {
       script?.remove();
     }
-  }, [activeSearchQuery, blogArticle, blogSlug, isBlogPage, isProductPage, routeProduct, storeSettings.socialPreviewImageUrl]);
+  }, [activeSearchQuery, blogArticle, blogSlug, isBlogPage, isProductPage, products, routeProduct, storeSettings.socialPreviewImageUrl]);
 
   const handleSearchSubmit = (value: string) => {
     const query = value.trim();

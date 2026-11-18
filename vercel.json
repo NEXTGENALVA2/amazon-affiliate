@@ -2,6 +2,18 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/blog/choose-noise-cancelling-headphones",
+      "destination": "/blog/choose-wireless-earbuds",
+      "permanent": true
+    },
+    {
+      "source": "/blog/choose-ergonomic-office-chair",
+      "destination": "/blog",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/",

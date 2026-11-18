@@ -15,11 +15,11 @@ const isProduct = (value: unknown): value is Product => {
     typeof product.inStock === 'boolean';
 };
 
-export const getProductForPreview = async (routeSlug: string): Promise<Product | undefined> => {
+export const getProductsForPreview = async (): Promise<Product[]> => {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required for product share previews.');
+    throw new Error('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required for product previews.');
   }
 
   const client = createClient(supabaseUrl, supabaseAnonKey, {
@@ -34,5 +34,8 @@ export const getProductForPreview = async (routeSlug: string): Promise<Product |
   const products = (data || [])
     .flatMap((row) => Array.isArray(row.payload) ? row.payload : [row.payload])
     .filter(isProduct);
-  return findProductByRouteSlug(products, routeSlug);
+  return products;
 };
+
+export const getProductForPreview = async (routeSlug: string): Promise<Product | undefined> =>
+  findProductByRouteSlug(await getProductsForPreview(), routeSlug);
