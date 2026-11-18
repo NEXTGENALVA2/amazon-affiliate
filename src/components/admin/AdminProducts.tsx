@@ -15,6 +15,7 @@ import { Product } from '../../types';
 import { formatCurrency } from '../../utils/helpers';
 import { AdminProductFormModal } from './AdminProductFormModal';
 import { store } from '../../services/store';
+import { getProductCategoryCounts } from '../../utils/productCategories';
 
 interface AdminProductsProps {
   products: Product[];
@@ -26,12 +27,14 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ products, onRefres
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const categories = getProductCategoryCounts(products);
 
   const filtered = products.filter((p) => {
     const matchesSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.brand.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' ||
+      p.category.trim().toLocaleLowerCase() === categoryFilter.toLocaleLowerCase();
     return matchesSearch && matchesCategory;
   });
 
@@ -96,11 +99,9 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ products, onRefres
           className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-950"
         >
           <option value="all">All Departments</option>
-          <option value="Cat Food & Pet Care">Cat Food & Pet Care</option>
-          <option value="Gym & Sports Nutrition">Gym & Sports Nutrition</option>
-          <option value="Tech & Smart Gadgets">Tech & Smart Gadgets</option>
-          <option value="Home & Kitchen Gadgets">Home & Kitchen Gadgets</option>
-          <option value="Home & Workstation">Home & Workstation</option>
+          {categories.map(({ name, count }) => (
+            <option key={name} value={name}>{name} ({count})</option>
+          ))}
         </select>
       </div>
 

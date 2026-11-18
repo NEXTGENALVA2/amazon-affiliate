@@ -14,6 +14,7 @@ import {
   Star,
   CheckCircle2,
   TrendingUp,
+  Filter,
 } from 'lucide-react';
 import { Product } from './types';
 import { getSocialPlatform, SocialPlatformIcon } from './components/SocialPlatformIcon';
@@ -31,6 +32,7 @@ import { formatCurrency, getYouTubeEmbedUrl } from './utils/helpers';
 import { pixelService } from './services/pixelService';
 import { findProductByRouteSlug, getProductPath, getProductRouteSlug } from './utils/productRoutes';
 import { BLOG_ARTICLES, getBlogArticle } from './data/blog';
+import { getProductCategoryCounts } from './utils/productCategories';
 
 const setMetaContent = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
   let element = document.head.querySelector<HTMLMetaElement>(selector);
@@ -82,15 +84,8 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // US Amazon Retail Categories
-  const categories = [
-    'All',
-    'Cat Food & Pet Care',
-    'Gym & Sports Nutrition',
-    'Home & Kitchen Gadgets',
-    'Tech & Smart Gadgets',
-    'Home & Workstation',
-  ];
+  const categoryCounts = getProductCategoryCounts(products);
+  const categories = ['All', ...categoryCounts.map(({ name }) => name)];
 
   // Refresh products & auth on change
   const refreshState = () => {
@@ -367,7 +362,9 @@ export default function App() {
 
   // Filter products
   const filteredProducts = products.filter((p) => {
-    const matchesCategory = Boolean(searchQuery.trim()) || selectedCategory === 'All' || p.category === selectedCategory;
+    const matchesCategory = Boolean(searchQuery.trim()) ||
+      selectedCategory === 'All' ||
+      p.category.trim().toLocaleLowerCase() === selectedCategory.toLocaleLowerCase();
     const matchesSearch = !searchQuery.trim() || matchesProductQuery(p, searchQuery);
     return matchesCategory && matchesSearch;
   });
@@ -672,9 +669,60 @@ export default function App() {
         </main>
       ) : (
       <main className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-20">
+
+        <section id="departments" aria-labelledby="category-filter-title" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                <Filter className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 id="category-filter-title" className="text-lg font-extrabold text-slate-950 sm:text-xl">
+                  Shop by category
+                </h2>
+                <p className="text-xs text-slate-500 sm:text-sm">
+                  Choose a category to find matching products.
+                </p>
+              </div>
+            </div>
+            <p className="text-xs font-medium text-slate-500 sm:text-right" aria-live="polite">
+              Showing {filteredProducts.length} of {products.length} products
+            </p>
+          </div>
+
+          <div
+            role="group"
+            aria-label="Filter products by category"
+            className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
+          >
+            {[{ name: 'All', count: products.length }, ...categoryCounts].map(({ name, count }) => {
+              const isSelected = selectedCategory.toLocaleLowerCase() === name.toLocaleLowerCase();
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedCategory(name)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors sm:text-sm ${
+                    isSelected
+                      ? 'border-slate-950 bg-slate-950 text-white shadow-sm'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-400 hover:bg-amber-50'
+                  }`}
+                >
+                  <span>{name === 'All' ? 'All products' : name}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                    isSelected ? 'bg-white/15 text-white' : 'bg-white text-slate-500'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
         
         {/* Section 1: US Flagship Trending Department Pillars (Cat Food, Gym Food, Smart Gadgets) */}
-        <section id="departments" className="space-y-6">
+        {selectedCategory === 'All' && <section id="trending-departments" className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-600">
@@ -910,7 +958,7 @@ export default function App() {
               </div>
             )}
           </div>
-        </section>
+        </section>}
 
         {/* Section 2: Complete Curated Amazon US Bestsellers Grid */}
         <section id="deals" className="space-y-6 pt-4">
@@ -924,7 +972,7 @@ export default function App() {
               </h2>
             </div>
             <div className="text-xs text-slate-500 font-mono">
-              Showing {filteredProducts.length} verified products · 100% Prime Eligible
+              Showing {filteredProducts.length} products
             </div>
           </div>
 
