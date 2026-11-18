@@ -55,6 +55,8 @@ const DEFAULT_PIXEL_SETTINGS: PixelSettings = {
   tiktokEnabled: true,
   googleTagId: '',
   googleEnabled: true,
+  pinterestTagId: '2613020754632',
+  pinterestEnabled: true,
   trackAsOrder: true, // Buy Now is treated as Purchase / Order for Ads optimization
   trackInitiateCheckout: true,
 };

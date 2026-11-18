@@ -48,4 +48,6 @@ The public buying-guide index is `/blog`; article pages use stable `/blog/<slug>
 
 `index.html` contains the Pinterest domain-verification meta tag from the current Pinterest claim flow. After deploying the site, open the exact production URL in Pinterest and choose **Claim website**. Add the Pinterest profile URL in **Admin → Social Accounts → Custom platforms** and save it to show the profile link on the storefront. If Pinterest issues a replacement verification tag, update the `p:domain_verify` content in `index.html`, redeploy, then retry the claim.
 
+The Pinterest base tag is enabled with the supplied Tag ID and records page visits, including client-side route changes. It does not send the example email placeholder or perform enhanced matching. The ID and enable switch are also shown in **Admin → Pixel Tracking**; changing those settings is browser-local, so update the source default in `src/services/store.ts` when changing the tag for all visitors.
+
 For search discovery, submit `https://<your-production-domain>/sitemap.xml` in Google Search Console and Bing Webmaster Tools after deployment. Verification, indexing, ranking, traffic, and sales are controlled by those services and cannot be guaranteed by the application.

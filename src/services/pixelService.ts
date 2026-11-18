@@ -4,23 +4,32 @@
  * - Meta Pixel (Facebook Ads) -> PageView, ViewContent, InitiateCheckout, Purchase
  * - TikTok Pixel (TikTok Ads) -> PageView, ViewContent, InitiateCheckout, CompletePayment
  * - Google Tag / GA4 / Google Ads -> page_view, view_item, begin_checkout, purchase
+ * - Pinterest Tag -> PageVisit
  */
 
 import { Product, PixelSettings, PixelEventLog } from '../types';
 import { store } from './store';
 
 declare global {
+  interface PinterestTracker {
+    (...args: unknown[]): void;
+    queue: unknown[][];
+    version: string;
+  }
+
   interface Window {
     fbq?: any;
     _fbq?: any;
     ttq?: any;
     dataLayer?: any[];
     gtag?: (...args: any[]) => void;
+    pintrk?: PinterestTracker;
   }
 }
 
 class PixelTrackingService {
   private initialized = false;
+  private lastPinterestPageUrl: string | null = null;
 
   public initialize(settings?: PixelSettings) {
     if (typeof window === 'undefined') return;
@@ -40,6 +49,11 @@ class PixelTrackingService {
     // 3. Initialize Google Tag
     if (currentSettings.googleEnabled && currentSettings.googleTagId) {
       this.injectGoogleTag(currentSettings.googleTagId);
+    }
+
+    if (currentSettings.pinterestEnabled && currentSettings.pinterestTagId) {
+      this.injectPinterestTag(currentSettings.pinterestTagId);
+      this.trackPageView();
     }
 
     this.initialized = true;
@@ -160,6 +174,40 @@ class PixelTrackingService {
     } catch (e) {
       console.warn('Google Tag initialization warning:', e);
     }
+  }
+
+  private injectPinterestTag(tagId: string) {
+    if (!window.pintrk) {
+      const pintrk: PinterestTracker = (...args) => {
+        pintrk.queue.push(args);
+      };
+      pintrk.queue = [];
+      pintrk.version = '3.0';
+      window.pintrk = pintrk;
+
+      const script = document.createElement('script');
+      script.id = 'pinterest-tag-script';
+      script.async = true;
+      script.src = 'https://s.pinimg.com/ct/core.js';
+      const firstScript = document.querySelector('script');
+      if (firstScript?.parentNode) {
+        firstScript.parentNode.insertBefore(script, firstScript);
+      } else {
+        document.head.appendChild(script);
+      }
+    }
+
+    window.pintrk('load', tagId.trim());
+  }
+
+  public trackPageView() {
+    const settings = store.getPixelSettings();
+    if (!settings.pinterestEnabled || !settings.pinterestTagId || !window.pintrk) return;
+
+    const pageUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    if (this.lastPinterestPageUrl === pageUrl) return;
+    this.lastPinterestPageUrl = pageUrl;
+    window.pintrk('page');
   }
 
   // --- Event Tracking: View Content ---

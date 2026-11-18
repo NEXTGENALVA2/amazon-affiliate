@@ -76,6 +76,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery ?? '');
   const [activeSearchQuery, setActiveSearchQuery] = useState<string | null>(initialSearchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const pageViewUrl = `${window.location.pathname}${window.location.search}`;
   
   // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -108,6 +109,10 @@ export default function App() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    pixelService.trackPageView();
+  }, [pageViewUrl]);
 
   useEffect(() => {
     const handlePopState = () => {

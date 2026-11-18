@@ -58,10 +58,10 @@ export const AdminPixelTracking: React.FC = () => {
             <span>Ad Conversion & Pixel Tracking Engine</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Meta, TikTok & Google Ad Pixels
+            Meta, TikTok, Google & Pinterest Tags
           </h2>
           <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-            Run Facebook, Instagram, TikTok, and Google Ads profitably. When visitors click <strong>&quot;Buy on Amazon&quot;</strong>, Kefayaan automatically triggers a verified <strong>Purchase / Order</strong> event so your ad algorithm learns and optimizes for buyers!
+            Manage the tracking tags used for Meta, TikTok, Google, and Pinterest campaigns. An outbound Amazon click is not confirmation of a completed order.
           </p>
         </div>
 
@@ -87,7 +87,7 @@ export const AdminPixelTracking: React.FC = () => {
       {/* Settings Form */}
       <form onSubmit={handleSave} className="space-y-6">
         {/* Pixel Platforms Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {/* 1. Meta / Facebook Pixel */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4 shadow-xs flex flex-col justify-between">
             <div className="space-y-3">
@@ -273,6 +273,66 @@ export const AdminPixelTracking: React.FC = () => {
               className="inline-flex items-center gap-1.5 text-xs text-emerald-700 hover:text-emerald-900 font-semibold pt-2 border-t border-slate-100"
             >
               <span>Open Google Tag Assistant</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          {/* 4. Pinterest Tag */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4 shadow-xs flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold text-sm">
+                    P
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Pinterest Tag</h3>
+                    <p className="text-[11px] text-slate-500">Pinterest Ads conversions</p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.pinterestEnabled}
+                    onChange={(e) => setSettings({ ...settings, pinterestEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600" />
+                </label>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 block">Pinterest Tag ID</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="e.g. 2613020754632"
+                  value={settings.pinterestTagId}
+                  onChange={(e) => setSettings({ ...settings, pinterestTagId: e.target.value })}
+                  className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-rose-600 focus:bg-white transition-all"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Page visits are tracked; customer email matching is not enabled.
+                </p>
+              </div>
+
+              <div className="p-2.5 bg-rose-50/60 rounded-xl text-[11px] text-rose-900 space-y-1 border border-rose-100">
+                <div className="font-bold flex items-center gap-1">
+                  <Activity className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Configured Event:</span>
+                </div>
+                <div className="font-mono text-[10px] text-rose-700">PageVisit</div>
+              </div>
+            </div>
+
+            <a
+              href="https://ads.pinterest.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-800 font-semibold pt-2 border-t border-slate-100"
+            >
+              <span>Open Pinterest Ads</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>

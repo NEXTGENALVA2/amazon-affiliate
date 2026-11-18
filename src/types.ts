@@ -104,6 +104,8 @@ export interface PixelSettings {
   tiktokEnabled: boolean;
   googleTagId: string; // e.g. G-XXXXXXX or AW-XXXXXXX
   googleEnabled: boolean;
+  pinterestTagId: string;
+  pinterestEnabled: boolean;
   trackAsOrder: boolean; // Treat "Buy on Amazon" click as Purchase/Order for ads optimization
   trackInitiateCheckout: boolean; // Also send InitiateCheckout event
 }
