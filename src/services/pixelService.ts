@@ -207,7 +207,9 @@ class PixelTrackingService {
     const pageUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
     if (this.lastPinterestPageUrl === pageUrl) return;
     this.lastPinterestPageUrl = pageUrl;
-    window.pintrk('page');
+    const eventId = window.crypto?.randomUUID?.() ||
+      `pagevisit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.pintrk('track', 'pagevisit', { event_id: eventId });
   }
 
   // --- Event Tracking: View Content ---
