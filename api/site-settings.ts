@@ -32,6 +32,7 @@ const DEFAULT_STOREFRONT_SETTINGS: PublicStoreSettings = {
   retailerName: 'Amazon',
   purchaseButtonLabel: 'Buy on Amazon',
   amazonOfficialStoreUrl: 'https://link.amazon/B0dbjUEFY',
+  socialPreviewImageUrl: 'https://www.kefayaan.com/assets/social/kefayaan-share.jpg',
 };
 
 function validateSettings(input: unknown): SocialSettings {
@@ -107,6 +108,11 @@ function validateStorefrontSettings(input: unknown): PublicStoreSettings {
     DEFAULT_STOREFRONT_SETTINGS.amazonOfficialStoreUrl,
     500
   );
+  const rawPreviewImageUrl = stringValue(
+    'socialPreviewImageUrl',
+    DEFAULT_STOREFRONT_SETTINGS.socialPreviewImageUrl,
+    1000
+  );
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -116,11 +122,21 @@ function validateStorefrontSettings(input: unknown): PublicStoreSettings {
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
     throw new AdminApiError(400, 'The retailer storefront URL must be a public HTTP or HTTPS link.');
   }
+  let previewImageUrl: URL;
+  try {
+    previewImageUrl = new URL(rawPreviewImageUrl);
+  } catch {
+    throw new AdminApiError(400, 'The social preview image URL is invalid.');
+  }
+  if (!['http:', 'https:'].includes(previewImageUrl.protocol) || previewImageUrl.username || previewImageUrl.password) {
+    throw new AdminApiError(400, 'The social preview image must be a public HTTP or HTTPS URL.');
+  }
 
   return {
     retailerName: stringValue('retailerName', DEFAULT_STOREFRONT_SETTINGS.retailerName, 40),
     purchaseButtonLabel: stringValue('purchaseButtonLabel', DEFAULT_STOREFRONT_SETTINGS.purchaseButtonLabel, 40),
     amazonOfficialStoreUrl: url.toString(),
+    socialPreviewImageUrl: previewImageUrl.toString(),
   };
 }
 

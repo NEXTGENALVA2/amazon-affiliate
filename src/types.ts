@@ -15,6 +15,7 @@ export interface StoreSettings {
   shopName: string;
   retailerName: string;
   purchaseButtonLabel: string;
+  socialPreviewImageUrl: string;
   tagline: string;
   logoUrl: string;
   amazonOfficialStoreUrl: string;
@@ -26,7 +27,7 @@ export interface StoreSettings {
 
 export type PublicStoreSettings = Pick<
   StoreSettings,
-  'retailerName' | 'purchaseButtonLabel' | 'amazonOfficialStoreUrl'
+  'retailerName' | 'purchaseButtonLabel' | 'amazonOfficialStoreUrl' | 'socialPreviewImageUrl'
 >;
 
 export type CatalogView = 'best-sellers' | 'new-arrivals' | 'all-products';

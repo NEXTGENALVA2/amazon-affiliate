@@ -4,6 +4,17 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Viber|VKShare|Tumblr|Snapchat|Mastodon).*"
+        }
+      ],
+      "destination": "/api/home-preview"
+    },
+    {
       "source": "/blog",
       "has": [
         {

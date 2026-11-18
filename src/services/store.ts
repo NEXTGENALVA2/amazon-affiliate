@@ -46,6 +46,7 @@ const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shopName: 'Kefayaan',
   retailerName: 'Amazon',
   purchaseButtonLabel: 'Buy on Amazon',
+  socialPreviewImageUrl: 'https://www.kefayaan.com/assets/social/kefayaan-share.jpg',
   tagline: 'Curated products and helpful buying guides',
   logoUrl: '/assets/aistudio/DP_af5fa802.png',
   amazonOfficialStoreUrl: 'https://link.amazon/B0dbjUEFY',
@@ -990,6 +991,7 @@ class StoreService {
       retailerName: updated.retailerName,
       purchaseButtonLabel: updated.purchaseButtonLabel,
       amazonOfficialStoreUrl: updated.amazonOfficialStoreUrl,
+      socialPreviewImageUrl: updated.socialPreviewImageUrl,
     });
     return this.updateStoreSettings(publicSettings);
   }

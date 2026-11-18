@@ -222,7 +222,7 @@ export default function App() {
     const pageUrl = new URL(window.location.pathname, origin).href;
     let title = 'Kefayaan | Curated Products & Buying Guides';
     let description = 'Browse curated products by category, compare useful details, and read practical buying guides from Kefayaan.';
-    let image = '/assets/aistudio/DP_af5fa802.png';
+    let image = storeSettings.socialPreviewImageUrl;
     let robots = 'index,follow';
     let structuredData: Record<string, unknown> | null = {
       '@context': 'https://schema.org',
@@ -339,7 +339,7 @@ export default function App() {
     } else {
       script?.remove();
     }
-  }, [activeSearchQuery, blogArticle, blogSlug, isBlogPage, isProductPage, routeProduct]);
+  }, [activeSearchQuery, blogArticle, blogSlug, isBlogPage, isProductPage, routeProduct, storeSettings.socialPreviewImageUrl]);
 
   const handleSearchSubmit = (value: string) => {
     const query = value.trim();

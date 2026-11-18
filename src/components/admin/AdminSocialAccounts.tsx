@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, ExternalLink, Link2, Plus, Save, Trash2 } from 'lucide-react';
 import { store } from '../../services/store';
+import { uploadImageToSupabase } from '../../services/storage';
 import { SocialChannel, SocialLink, SocialSettings, StoreSettings } from '../../types';
 
 const SOCIAL_CHANNELS: Array<{ channel: SocialChannel; label: string }> = [
@@ -21,6 +22,7 @@ export const AdminSocialAccounts: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [storeError, setStoreError] = useState('');
   const [isSavingStore, setIsSavingStore] = useState(false);
+  const [isUploadingPreviewImage, setIsUploadingPreviewImage] = useState(false);
   const [storeSaved, setStoreSaved] = useState(false);
 
   useEffect(() => {
@@ -60,6 +62,54 @@ export const AdminSocialAccounts: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handlePreviewImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setStoreError('Choose an image file for the social preview.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setStoreError('The preview image must be smaller than 20 MB.');
+      return;
+    }
+
+    setStoreError('');
+    setIsUploadingPreviewImage(true);
+    try {
+      const image = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 630;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Could not prepare the preview image.');
+      const scale = Math.max(canvas.width / image.width, canvas.height / image.height);
+      const width = image.width * scale;
+      const height = image.height * scale;
+      context.drawImage(image, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+      image.close();
+
+      const optimizedFile = await new Promise<File>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Could not optimize the preview image.'));
+            return;
+          }
+          resolve(new File([blob], 'kefayaan-social-preview.jpg', { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.88);
+      });
+      const imageUrl = await uploadImageToSupabase(optimizedFile);
+      if (!imageUrl) throw new Error('Image storage is not configured. Paste a public image URL instead.');
+      setStoreSettings((current) => ({ ...current, socialPreviewImageUrl: imageUrl }));
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : 'Could not upload the preview image.';
+      setStoreError(message);
+    } finally {
+      setIsUploadingPreviewImage(false);
+    }
   };
 
   const toggleChannel = (channel: SocialChannel) => {
@@ -167,6 +217,43 @@ export const AdminSocialAccounts: React.FC = () => {
               className="w-full rounded-xl border border-amber-300 bg-amber-50/40 px-3.5 py-2.5 font-mono"
             />
           </label>
+          <label className="space-y-1 md:col-span-2">
+            <span className="font-semibold text-slate-700">Homepage Share Preview Image URL</span>
+            <input
+              type="url"
+              required
+              maxLength={1000}
+              value={storeSettings.socialPreviewImageUrl}
+              onChange={(event) => setStoreSettings((current) => ({ ...current, socialPreviewImageUrl: event.target.value }))}
+              placeholder="https://..."
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 font-mono"
+            />
+            <span className="block text-[10px] leading-4 text-slate-500">
+              Used when sharing the homepage. Recommended image size: 1200 × 630.
+            </span>
+          </label>
+          <label className="space-y-1 md:col-span-2">
+            <span className="font-semibold text-slate-700">Or upload a new preview image</span>
+            <input
+              type="file"
+              accept="image/*"
+              disabled={isUploadingPreviewImage}
+              onChange={(event) => void handlePreviewImageUpload(event)}
+              className="w-full text-xs text-slate-500 disabled:opacity-60"
+            />
+            <span className="block text-[10px] leading-4 text-slate-500">
+              Uploads are optimized to 1200 × 630 and saved to the product-images bucket. Save Store Settings after upload.
+            </span>
+          </label>
+          {storeSettings.socialPreviewImageUrl && (
+            <div className="md:col-span-2">
+              <img
+                src={storeSettings.socialPreviewImageUrl}
+                alt="Homepage social share preview"
+                className="max-h-56 w-full rounded-xl border border-slate-200 bg-slate-950 object-contain"
+              />
+            </div>
+          )}
           <label className="space-y-1">
             <span className="font-semibold text-slate-700">Logo URL or path</span>
             <input
@@ -185,9 +272,9 @@ export const AdminSocialAccounts: React.FC = () => {
             <span className="text-[11px] text-slate-500">
               Official store clicks: {storeSettings.officialStoreClicksCount || 0}
             </span>
-            <button type="submit" disabled={isSavingStore} className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 font-bold text-slate-950 hover:bg-amber-500 disabled:cursor-wait disabled:opacity-60">
+            <button type="submit" disabled={isSavingStore || isUploadingPreviewImage} className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 font-bold text-slate-950 hover:bg-amber-500 disabled:cursor-wait disabled:opacity-60">
               <Save className="h-4 w-4" />
-              {isSavingStore ? 'Saving...' : 'Save Store Settings'}
+              {isUploadingPreviewImage ? 'Uploading image...' : isSavingStore ? 'Saving...' : 'Save Store Settings'}
             </button>
           </div>
         </form>
