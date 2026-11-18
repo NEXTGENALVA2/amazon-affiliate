@@ -119,10 +119,6 @@ export default async function handler(request: IncomingMessage, response: Server
     const productImages = productImageUrls.slice(1).map((image) =>
       `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy" width="800" height="600">`,
     ).join('\n      ');
-    const features = (Array.isArray(product.features) ? product.features : [])
-      .filter((feature): feature is string => typeof feature === 'string' && Boolean(feature.trim()))
-      .map((feature) => `<li>${escapeHtml(feature)}</li>`)
-      .join('\n      ');
     const price = safePrice ? `$${safePrice}` : '';
     const listPrice = Number.isFinite(product.price) && product.price > product.dealPrice
       ? `<del>$${product.price.toFixed(2)}</del> `
@@ -178,7 +174,6 @@ export default async function handler(request: IncomingMessage, response: Server
         ${productImageMarkup}
         ${productImages}
         <p>${escapeHtml(productDescription || description)}</p>
-        ${features ? `<h2>Product details</h2><ul>${features}</ul>` : ''}
         ${price ? `<p><strong>${listPrice}${price}</strong></p>` : ''}
         <p>Availability: ${availability}. Price and availability can change; confirm current details with the retailer.</p>
         ${purchaseLink}
