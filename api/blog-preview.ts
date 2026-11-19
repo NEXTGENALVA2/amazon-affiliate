@@ -4,6 +4,7 @@ import { getProductPath } from '../src/utils/productRoutes.js';
 import { BLOG_ARTICLES, getBlogArticle, getRelatedProducts } from '../src/data/blog.js';
 import { getSiteOrigin } from './siteOrigin.js';
 import { getProductsForPreview } from './product-data.js';
+import { getProductCategoryDescription, getProductCategorySections } from '../src/utils/productCategories.js';
 
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (character) => ({
@@ -130,7 +131,7 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string, 
   <body>
     <header>
       <a href="/"><img src="/assets/brand/kefayaan-logo.jpg" width="40" height="40" alt=""> Kefayaan</a>
-      <a href="/blog">Buying Guides</a>
+      <a href="/blog#shop-by-category">Shop categories</a>
       <a href="#ordering-steps">How to order</a>
     </header>
     <main>
@@ -183,6 +184,35 @@ const renderIndex = (origin: string, products: Product[]): string => {
         ${productLink}
         <a href="${escapeHtml(guideUrl)}">Read the guide and compare products</a>
       </article>`;
+  }).join('\n');
+  const categorySections = getProductCategorySections(products).map((section) => {
+    const categoryProducts = section.products.map((product) => {
+      const productUrl = new URL(getProductPath(product), origin).href;
+      const productImage = getProductImageUrl(product, origin);
+      const imageMarkup = productImage
+        ? `<img src="${escapeHtml(productImage)}" alt="${escapeHtml(product.imageAlt || `${product.title} product photo`)}" width="96" height="96" loading="lazy">`
+        : '';
+      const priceMarkup = Number.isFinite(product.dealPrice) && product.dealPrice > 0
+        ? `<p>Listed price: $${product.dealPrice.toFixed(2)} USD. Confirm the current price with the retailer.</p>`
+        : '';
+      return `
+        <article>
+          ${imageMarkup}
+          <h3><a href="${escapeHtml(productUrl)}">${escapeHtml(product.title)}</a></h3>
+          ${priceMarkup}
+          <a href="${escapeHtml(productUrl)}">View product</a>
+        </article>`;
+    }).join('\n');
+    const categoryCount = section.count > section.products.length
+      ? `<p>${section.count} in stock; showing the latest ${section.products.length} listings.</p>`
+      : `<p>${section.count} in-stock ${section.count === 1 ? 'item' : 'items'}.</p>`;
+    return `
+      <section>
+        <h2>${escapeHtml(section.name)}</h2>
+        <p>${escapeHtml(getProductCategoryDescription(section.name))}</p>
+        ${categoryCount}
+        ${categoryProducts}
+      </section>`;
   }).join('\n');
   const jsonLd = JSON.stringify({
     '@context': 'https://schema.org',
@@ -239,6 +269,12 @@ const renderIndex = (origin: string, products: Product[]): string => {
         <h2>How to order through Kefayaan</h2>
         <p>Open a related product page, review the details, then choose its retailer purchase button. Checkout, payment, and delivery happen on the retailer’s website; Kefayaan does not take payment or ship orders.</p>
       </section>
+      <section id="shop-by-category">
+        <h2>Useful finds, all in one place</h2>
+        <p>Browse pet food and care, kitchen and home accessories, technology, nutrition, and more. These sections follow the live catalog: new in-stock products appear under the category saved for them, with the newest listings shown first.</p>
+        ${categorySections}
+      </section>
+      <h2 id="buying-guides">Product buying guides</h2>
       ${cards}
     </main>
   </body>

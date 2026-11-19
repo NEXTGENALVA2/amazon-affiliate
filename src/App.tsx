@@ -514,7 +514,7 @@ export default function App() {
   }
 
   if (isBlogPage) {
-    return <BlogPage slug={blogSlug} products={products} />;
+    return <BlogPage slug={blogSlug} products={products} productsReady={isProductsReady} />;
   }
 
   // Featured products for the storefront spotlight

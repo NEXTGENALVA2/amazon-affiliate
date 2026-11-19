@@ -5,10 +5,13 @@ import { Product } from '../types';
 import { getProductPath } from '../utils/productRoutes';
 import { formatCurrency } from '../utils/helpers';
 import { store } from '../services/store';
+import { getProductCategoryDescription, getProductCategorySections } from '../utils/productCategories';
+import type { ProductCategorySection } from '../utils/productCategories';
 
 interface BlogPageProps {
   slug: string | null;
   products: Product[];
+  productsReady: boolean;
 }
 
 const ArticleCard: React.FC<{ article: BlogArticle; products: Product[] }> = ({ article, products }) => {
@@ -59,13 +62,59 @@ const ProductRecommendation: React.FC<{ product: Product; retailerName: string }
   </a>
 );
 
-export const BlogPage: React.FC<BlogPageProps> = ({ slug, products }) => {
+const CategoryCollection: React.FC<{ section: ProductCategorySection; retailerName: string }> = ({ section, retailerName }) => (
+  <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+    <header className="flex items-start justify-between gap-3">
+      <div>
+        <h3 className="text-lg font-extrabold text-slate-950">{section.name}</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-600">{getProductCategoryDescription(section.name)}</p>
+      </div>
+      <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        {section.count} in stock
+      </span>
+    </header>
+    {section.count > section.products.length && (
+      <p className="mt-3 text-xs text-slate-500">Showing the latest {section.products.length} listings.</p>
+    )}
+    <div className="mt-4 space-y-3">
+      {section.products.map((product) => (
+        <a
+          key={product.id}
+          href={getProductPath(product)}
+          className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-amber-400 hover:bg-amber-50/40"
+        >
+          <img
+            src={product.image}
+            alt={product.imageAlt || `${product.title} product photo`}
+            className="h-16 w-16 shrink-0 rounded-lg bg-slate-50 object-contain"
+            loading="lazy"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-bold uppercase text-slate-500">{product.brand}</span>
+            <span className="mt-1 block line-clamp-2 text-sm font-bold text-slate-900">{product.title}</span>
+            {product.dealPrice > 0 && (
+              <span className="mt-1 block text-xs text-slate-600">
+                Listed price: {formatCurrency(product.dealPrice)} at {retailerName}
+              </span>
+            )}
+            <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-amber-700">
+              View product <ArrowRight className="h-3 w-3" />
+            </span>
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+);
+
+export const BlogPage: React.FC<BlogPageProps> = ({ slug, products, productsReady }) => {
   const storeSettings = store.getStoreSettings();
   const affiliateDisclosure = storeSettings.retailerName.toLowerCase() === 'amazon'
     ? `As an Amazon Associate, ${storeSettings.shopName} earns from qualifying purchases.`
     : `${storeSettings.shopName} may earn a commission from qualifying purchases through ${storeSettings.retailerName} links.`;
   const article = slug ? BLOG_ARTICLES.find((item) => item.slug === slug) : undefined;
   const relatedProducts = article ? getRelatedProducts(article, products) : [];
+  const categorySections = getProductCategorySections(products);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -76,7 +125,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({ slug, products }) => {
             Kefayaan
           </a>
           <nav className="flex items-center gap-4 text-sm font-semibold">
-            <a href="/blog" className="text-slate-600 hover:text-slate-950">Buying Guides</a>
+            <a href={slug ? '/blog#shop-by-category' : '#shop-by-category'} className="text-slate-600 hover:text-slate-950">Shop categories</a>
             <a href="#ordering-steps" className="text-amber-700 hover:text-amber-800">How to order</a>
           </nav>
         </div>
@@ -163,6 +212,26 @@ export const BlogPage: React.FC<BlogPageProps> = ({ slug, products }) => {
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
               Product-focused checklists to help compare real catalog options, key specifications, and purchase terms. We do not present these guides as independent lab tests.
             </p>
+            <section id="shop-by-category" className="mt-8">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Shop the Kefayaan catalog</p>
+                <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Useful finds, all in one place</h2>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
+                  Browse pet food and care, kitchen and home accessories, technology, nutrition, and more. These sections follow the live catalog: new in-stock products appear under the category saved for them, with the newest listings shown first.
+                </p>
+              </div>
+              {categorySections.length > 0 ? (
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  {categorySections.map((section) => (
+                    <CategoryCollection key={section.name} section={section} retailerName={storeSettings.retailerName} />
+                  ))}
+                </div>
+              ) : (
+                <p role="status" className="mt-5 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                  {productsReady ? 'There are no in-stock products to show right now.' : 'Loading the latest catalog products…'}
+                </p>
+              )}
+            </section>
             <section id="ordering-steps" className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
               <h2 className="font-extrabold text-slate-950">How to order from Kefayaan</h2>
               <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -170,7 +239,11 @@ export const BlogPage: React.FC<BlogPageProps> = ({ slug, products }) => {
               </p>
               <p className="mt-2 text-xs leading-5 text-slate-600">{affiliateDisclosure} Product prices and availability can change; confirm them with the retailer.</p>
             </section>
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div id="buying-guides" className="mt-10">
+              <h2 className="text-2xl font-extrabold tracking-tight text-slate-950">Product buying guides</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Practical checklists linked to relevant products in the current catalog.</p>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
               {BLOG_ARTICLES.map((item) => <ArticleCard key={item.slug} article={item} products={products} />)}
             </div>
           </section>
