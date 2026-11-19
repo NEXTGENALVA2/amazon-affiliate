@@ -113,7 +113,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       >
         <img
           src={activeImage}
-          alt={product.title}
+          alt={product.imageAlt || `${product.title} product photo`}
           referrerPolicy="no-referrer"
           className="w-full h-full max-h-full object-contain object-center transition-transform duration-300 drop-shadow-xs"
           onError={(e) => {

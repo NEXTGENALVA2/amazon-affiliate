@@ -116,8 +116,8 @@ export default async function handler(request: IncomingMessage, response: Server
     const escapedImage = escapeHtml(imageUrl);
     const escapedUrl = escapeHtml(canonicalUrl);
     const escapedProductImage = productImageUrls[0] ? escapeHtml(productImageUrls[0]) : '';
-    const productImages = productImageUrls.slice(1).map((image) =>
-      `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.title)}" loading="lazy" width="800" height="600">`,
+    const productImages = productImageUrls.slice(1).map((image, index) =>
+      `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.imageAlt || `${product.title} product photo`)} ${index + 2}" loading="lazy" width="800" height="600">`,
     ).join('\n      ');
     const price = safePrice ? `$${safePrice}` : '';
     const listPrice = Number.isFinite(product.price) && product.price > product.dealPrice
@@ -131,7 +131,7 @@ export default async function handler(request: IncomingMessage, response: Server
     const safeCategory = product.category ? `<p><strong>Category:</strong> ${escapeHtml(product.category)}</p>` : '';
     const availability = product.inStock ? 'In stock' : 'Currently unavailable';
     const productImageMarkup = escapedProductImage
-      ? `<img src="${escapedProductImage}" alt="${escapeHtml(product.title)}" width="800" height="600" fetchpriority="high">`
+      ? `<img src="${escapedProductImage}" alt="${escapeHtml(product.imageAlt || `${product.title} product photo`)}" width="800" height="600" fetchpriority="high">`
       : '';
     const imageDimensions = hasOptimizedImage
       ? '<meta property="og:image:width" content="1200">\n    <meta property="og:image:height" content="630">'

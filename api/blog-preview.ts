@@ -69,7 +69,7 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string, 
     const productUrl = new URL(getProductPath(product), origin).href;
     const productImage = getProductImageUrl(product, origin);
     const imageMarkup = productImage
-      ? `<img src="${escapeHtml(productImage)}" alt="${escapeHtml(product.title)}" width="160" height="160" loading="lazy">`
+      ? `<img src="${escapeHtml(productImage)}" alt="${escapeHtml(product.imageAlt || `${product.title} product photo`)}" width="160" height="160" loading="lazy">`
       : '';
     const priceMarkup = Number.isFinite(product.dealPrice) && product.dealPrice > 0
       ? `<p>Listed price: $${product.dealPrice.toFixed(2)} USD. Confirm the current price with the retailer.</p>`

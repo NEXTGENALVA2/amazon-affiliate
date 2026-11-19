@@ -2,11 +2,32 @@ import { supabase } from './supabase';
 
 const isBrowser = typeof window !== 'undefined';
 
-export async function uploadImageToSupabase(file: File): Promise<string | null> {
+const getImageExtension = (file: File): string => {
+  const filenameExtension = file.name.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
+  if (filenameExtension && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'svg', 'bmp'].includes(filenameExtension)) {
+    return filenameExtension;
+  }
+  const mimeExtensions: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/avif': 'avif',
+    'image/svg+xml': 'svg',
+    'image/bmp': 'bmp',
+  };
+  return mimeExtensions[file.type] || 'jpg';
+};
+
+export async function uploadImageToSupabase(file: File, descriptiveName?: string): Promise<string | null> {
   if (!supabase || !isBrowser) return null;
 
-  const fileExt = file.name.split('.').pop() || 'jpg';
-  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+  const baseName = (descriptiveName || file.name.replace(/\.[^.]+$/, ''))
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80) || 'product-image';
+  const safeName = `${baseName}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${getImageExtension(file)}`;
   const filePath = `products/images/${safeName}`;
 
   const { error } = await supabase.storage.from('product-images').upload(filePath, file, {

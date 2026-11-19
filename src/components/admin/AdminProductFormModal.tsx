@@ -71,6 +71,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
   
   // Up to 20 Images Gallery State
   const [gallery, setGallery] = useState<string[]>([PRESET_IMAGES[0].url]);
+  const [imageAlt, setImageAlt] = useState('');
   const [coverIndex, setCoverIndex] = useState<number>(0);
   const [singleImageUrlInput, setSingleImageUrlInput] = useState('');
   
@@ -144,6 +145,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
         ? productToEdit.gallery
         : [productToEdit.image];
       setGallery(existingGallery);
+      setImageAlt(productToEdit.imageAlt || '');
       setCoverIndex(0);
 
       // Load variants
@@ -171,6 +173,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       setAmazonUrl('');
       setAffiliateTag('kefayaan-20');
       setGallery([PRESET_IMAGES[0].url]);
+      setImageAlt('');
       setCoverIndex(0);
       setVariants([]);
       setNewVarImages([]);
@@ -246,7 +249,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
     try {
       const uploadedUrls: string[] = [];
       for (const file of filesToLoad) {
-        const uploadedUrl = await uploadImageToSupabase(file);
+        const uploadedUrl = await uploadImageToSupabase(file, title.trim() ? `${title.trim()} product photo` : undefined);
         if (uploadedUrl) {
           uploadedUrls.push(uploadedUrl);
         } else {
@@ -378,7 +381,9 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
     try {
       const uploadedUrls: string[] = [];
       for (const file of files.slice(0, remainingSlots)) {
-        const uploadedUrl = await uploadImageToSupabase(file);
+        const variantLabel = targetVariant?.name || newVarName;
+        const imageLabel = title.trim() ? `${title.trim()} ${variantLabel || 'variant'} photo` : undefined;
+        const uploadedUrl = await uploadImageToSupabase(file, imageLabel);
         if (!uploadedUrl) {
           throw new Error('Supabase Storage is not configured. Configure the product-images bucket before uploading variant photos.');
         }
@@ -478,6 +483,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
       amazonUrl: formattedAmazonUrl,
       affiliateTag: affiliateTag.trim(),
       image: primaryImage,
+      imageAlt: imageAlt.trim() || `${title.trim()} product photo`,
       gallery: gallery.slice(0, 20),
       variants: variants.map((variant) => {
         const variantImages = getVariantImages(variant);
@@ -624,6 +630,20 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
               <span className="font-bold font-mono text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">
                 Images Added: {gallery.length} / 20 Max
               </span>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="product-image-alt" className="font-semibold text-slate-700">Main image alt text</label>
+              <input
+                id="product-image-alt"
+                type="text"
+                maxLength={180}
+                value={imageAlt || `${title.trim()} product photo`.trim()}
+                onChange={(event) => setImageAlt(event.target.value)}
+                placeholder="Describe what is visible in the main product photo"
+                className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-950"
+              />
+              <p className="text-[11px] text-slate-500">A product-name description is generated automatically. Edit it to accurately describe the image; avoid adding unrelated keywords.</p>
             </div>
 
             {/* Actions: Batch Upload or URL */}

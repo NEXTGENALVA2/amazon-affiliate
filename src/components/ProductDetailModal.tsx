@@ -201,7 +201,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="relative w-full h-full flex items-center justify-center">
                   <img
                     src={selectedImage}
-                    alt={product.title}
+                    alt={`${product.imageAlt || product.title} photo ${activeImageIndex + 1}`}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-contain transition-all duration-300"
                   />
@@ -259,7 +259,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         : 'border-slate-200 opacity-70 hover:opacity-100 hover:border-slate-400'
                     }`}
                   >
-                    <img src={imgUrl} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-contain" />
+                    <img src={imgUrl} alt={`${product.imageAlt || product.title} thumbnail ${i + 1}`} className="w-full h-full object-contain" />
                   </button>
                 ))}
 

@@ -43,6 +43,7 @@ export interface Product {
   amazonUrl: string;
   affiliateTag?: string;
   image: string;
+  imageAlt?: string;
   gallery: string[];
   variants?: ProductVariant[];
   videoType: 'youtube' | 'direct' | 'none';

@@ -43,7 +43,7 @@ const ProductRecommendation: React.FC<{ product: Product; retailerName: string }
     href={getProductPath(product)}
     className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-amber-400 hover:shadow-sm"
   >
-    <img src={product.image} alt={product.title} className="h-20 w-20 shrink-0 rounded-xl bg-slate-100 object-contain" loading="lazy" />
+    <img src={product.image} alt={product.imageAlt || `${product.title} product photo`} className="h-20 w-20 shrink-0 rounded-xl bg-slate-100 object-contain" loading="lazy" />
     <span className="min-w-0 flex-1">
       <span className="block text-xs font-bold uppercase text-slate-500">{product.brand}</span>
       <span className="mt-1 block line-clamp-2 text-sm font-bold text-slate-900">{product.title}</span>

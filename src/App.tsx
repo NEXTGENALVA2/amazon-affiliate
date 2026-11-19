@@ -237,6 +237,8 @@ export default function App() {
     };
 
     const relatedBlogProduct = blogArticle ? getRelatedProducts(blogArticle, products, 1)[0] : undefined;
+    const socialImageAlt = relatedBlogProduct?.imageAlt || relatedBlogProduct?.title ||
+      (routeProduct ? routeProduct.imageAlt || routeProduct.title : 'Kefayaan');
     if (isBlogPage) {
       const blogUrl = blogSlug ? `${origin}/blog/${blogSlug}` : `${origin}/blog`;
       const blogTitle = blogArticle ? `${blogArticle.title} | Kefayaan` : 'Kefayaan Buying Guides';
@@ -334,11 +336,11 @@ export default function App() {
     setMetaContent('meta[property="og:type"]', 'property', 'og:type', isBlogPage && blogArticle ? 'article' : routeProduct ? 'product' : 'website');
     setMetaContent('meta[property="og:url"]', 'property', 'og:url', isBlogPage ? `${origin}${blogSlug ? `/blog/${blogSlug}` : '/blog'}` : pageUrl);
     setMetaContent('meta[property="og:image"]', 'property', 'og:image', image ? new URL(image, origin).href : '');
-    setMetaContent('meta[property="og:image:alt"]', 'property', 'og:image:alt', relatedBlogProduct?.title || 'Kefayaan');
+    setMetaContent('meta[property="og:image:alt"]', 'property', 'og:image:alt', socialImageAlt);
     setMetaContent('meta[name="twitter:title"]', 'name', 'twitter:title', title);
     setMetaContent('meta[name="twitter:description"]', 'name', 'twitter:description', description);
     setMetaContent('meta[name="twitter:image"]', 'name', 'twitter:image', image ? new URL(image, origin).href : '');
-    setMetaContent('meta[name="twitter:image:alt"]', 'name', 'twitter:image:alt', relatedBlogProduct?.title || 'Kefayaan');
+    setMetaContent('meta[name="twitter:image:alt"]', 'name', 'twitter:image:alt', socialImageAlt);
     if (!isBlogPage) setCanonicalUrl(pageUrl);
 
     let script = document.getElementById('page-structured-data');
