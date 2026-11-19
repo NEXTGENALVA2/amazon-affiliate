@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getProductPath, getProductRouteSlug } from '../src/utils/productRoutes.js';
 import { getYouTubeEmbedUrl } from '../src/utils/helpers.js';
-import { getSiteOrigin } from './siteOrigin.js';
+import { getSiteOrigin } from '../server/siteOrigin.js';
 import { getProductForPreview } from './product-data.js';
 
 const escapeHtml = (value: string): string =>

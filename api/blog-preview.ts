@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Product } from '../src/types.js';
 import { getProductPath } from '../src/utils/productRoutes.js';
 import { BLOG_ARTICLES, getBlogArticle, getRelatedProducts } from '../src/data/blog.js';
-import { getSiteOrigin } from './siteOrigin.js';
+import { getSiteOrigin } from '../server/siteOrigin.js';
 import { getProductsForPreview } from './product-data.js';
 import { getProductCategoryDescription, getProductCategorySections } from '../src/utils/productCategories.js';
 

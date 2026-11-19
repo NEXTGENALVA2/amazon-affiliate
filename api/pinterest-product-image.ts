@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import sharp from 'sharp';
 import { getProductRouteSlug } from '../src/utils/productRoutes.js';
 import { getProductForPreview } from './product-data.js';
-import { getSiteOrigin } from './siteOrigin.js';
+import { getSiteOrigin } from '../server/siteOrigin.js';
 
 const sendError = (response: ServerResponse, status: number, message: string): void => {
   response.statusCode = status;

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createClient } from '@supabase/supabase-js';
-import { getSiteOrigin } from './siteOrigin.js';
+import { getSiteOrigin } from '../server/siteOrigin.js';
 
 const DEFAULT_IMAGE = 'https://www.kefayaan.com/assets/social/kefayaan-share.jpg';
 const escapeHtml = (value: string): string => value

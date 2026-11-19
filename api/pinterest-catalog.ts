@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Product, ProductVariant } from '../src/types.js';
 import { getProductPath } from '../src/utils/productRoutes.js';
 import { getProductsForPreview } from './product-data.js';
-import { getSiteOrigin } from './siteOrigin.js';
+import { getSiteOrigin } from '../server/siteOrigin.js';
 
 const COLUMNS = [
   'id',

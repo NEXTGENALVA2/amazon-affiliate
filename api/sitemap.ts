@@ -3,7 +3,7 @@ import type { Product } from '../src/types.js';
 import { getProductPath } from '../src/utils/productRoutes.js';
 import { BLOG_ARTICLES, getRelatedProducts } from '../src/data/blog.js';
 import { getProductsForPreview } from './product-data.js';
-import { getSiteOrigin } from './siteOrigin.js';
+import { getSiteOrigin } from '../server/siteOrigin.js';
 
 export interface SitemapUrl {
   url: string;
