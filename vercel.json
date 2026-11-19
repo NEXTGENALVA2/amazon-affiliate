@@ -64,6 +64,10 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/pinterest-catalog.csv",
+      "destination": "/api/pinterest-catalog"
+    },
+    {
       "source": "/robots.txt",
       "destination": "/api/robots"
     },

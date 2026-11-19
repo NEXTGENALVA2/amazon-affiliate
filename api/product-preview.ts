@@ -69,6 +69,10 @@ export default async function handler(request: IncomingMessage, response: Server
     }
 
     const origin = getSiteOrigin(request);
+    const variantId = requestUrl.searchParams.get('variant');
+    const selectedVariant = variantId
+      ? product.variants?.find((variant) => variant.id === variantId)
+      : undefined;
     const canonicalUrl = new URL(getProductPath(product), origin).href;
     const title = `${product.title} | Kefayaan`;
     const productDescription = product.description?.trim() || '';
@@ -79,8 +83,9 @@ export default async function handler(request: IncomingMessage, response: Server
         .map((image) => getSafeImageUrl(image, origin))
         .filter((image): image is string => Boolean(image)),
     )];
-    const safePrice = Number.isFinite(product.dealPrice) && product.dealPrice > 0
-      ? product.dealPrice.toFixed(2)
+    const currentPrice = selectedVariant?.dealPrice ?? product.dealPrice;
+    const safePrice = Number.isFinite(currentPrice) && currentPrice > 0
+      ? currentPrice.toFixed(2)
       : null;
     let imageUrl = new URL('/assets/brand/kefayaan-logo.jpg', origin).href;
     let shareImageAlt = 'Kefayaan logo';
@@ -110,7 +115,9 @@ export default async function handler(request: IncomingMessage, response: Server
         url: canonicalUrl,
         priceCurrency: 'USD',
         price: safePrice,
-        availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        availability: product.inStock && selectedVariant?.inStock !== false
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
       } : undefined,
     };
     const jsonLd = JSON.stringify([
@@ -153,7 +160,7 @@ export default async function handler(request: IncomingMessage, response: Server
     const listPrice = Number.isFinite(product.price) && product.price > product.dealPrice
       ? `<del>$${product.price.toFixed(2)}</del> `
       : '';
-    const affiliateUrl = getSafeImageUrl(product.amazonUrl, origin);
+    const affiliateUrl = getSafeImageUrl(selectedVariant?.amazonUrl || product.amazonUrl, origin);
     const purchaseLink = affiliateUrl
       ? `<p><a href="${escapeHtml(affiliateUrl)}" rel="sponsored nofollow noopener" target="_blank">Check price and availability at the retailer</a></p>`
       : '';
@@ -204,6 +211,7 @@ export default async function handler(request: IncomingMessage, response: Server
         <h1>${escapeHtml(product.title)}</h1>
         ${safeBrand}
         ${safeCategory}
+        ${selectedVariant ? `<p><strong>Option:</strong> ${escapeHtml(selectedVariant.name)}</p>` : ''}
         ${productVideoMarkup}
         ${productImageMarkup}
         ${productImages}

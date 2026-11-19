@@ -196,6 +196,7 @@ export default function App() {
 
   const productRouteSlug = getProductRouteSlug(window.location.pathname);
   const routeProduct = productRouteSlug ? findProductByRouteSlug(products, productRouteSlug) : undefined;
+  const selectedVariantId = new URLSearchParams(window.location.search).get('variant') || undefined;
   const isProductPage = productRouteSlug !== null;
   const blogRouteMatch = window.location.pathname.match(/^\/blog(?:\/([^/]+))?\/?$/);
   let blogSlug: string | null = null;
@@ -556,6 +557,7 @@ export default function App() {
         {routeProduct ? (
           <ProductDetailModal
             product={routeProduct}
+            selectedVariantId={selectedVariantId}
             isPage
             onClose={handleCloseProductPage}
             onBuyNow={(prod, customUrl) => handleBuyNow(prod, undefined, customUrl)}

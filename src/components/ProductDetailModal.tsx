@@ -13,6 +13,7 @@ interface ProductDetailModalProps {
   purchaseButtonLabel: string;
   shopName: string;
   isPage?: boolean;
+  selectedVariantId?: string;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -24,9 +25,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   purchaseButtonLabel,
   shopName,
   isPage = false,
+  selectedVariantId,
 }) => {
   const hasVariants = Boolean(product?.variants?.length);
-  const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
+  const getVariantIndex = () => {
+    const index = product?.variants?.findIndex((variant) => variant.id === selectedVariantId) ?? -1;
+    return index >= 0 ? index : 0;
+  };
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(getVariantIndex);
   const activeVariant = hasVariants ? product?.variants?.[selectedVariantIdx] : null;
   const currentPrice = activeVariant?.price !== undefined ? activeVariant.price : product?.price ?? 0;
   const currentDealPrice = activeVariant?.dealPrice !== undefined ? activeVariant.dealPrice : product?.dealPrice ?? 0;
@@ -49,10 +55,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    setSelectedVariantIdx(0);
+    setSelectedVariantIdx(getVariantIndex());
     setActiveImageIndex(0);
     setActiveMedia(product?.videoType !== 'none' && Boolean(product?.videoUrl) ? 'video' : 'image');
-  }, [product?.id]);
+  }, [product?.id, selectedVariantId]);
 
   if (!product) return null;
 
