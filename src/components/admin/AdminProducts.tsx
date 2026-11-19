@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Plus,
   Search,
@@ -16,6 +16,7 @@ import { formatCurrency } from '../../utils/helpers';
 import { AdminProductFormModal } from './AdminProductFormModal';
 import { store } from '../../services/store';
 import { getProductCategoryCounts } from '../../utils/productCategories';
+import { fetchAnalytics } from '../../services/analytics';
 
 interface AdminProductsProps {
   products: Product[];
@@ -27,7 +28,31 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ products, onRefres
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState('');
   const categories = getProductCategoryCounts(products);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      fetchAnalytics('all').then((summary) => {
+        if (!active) return;
+        setClickCounts(Object.fromEntries(summary.topClickedProducts.map((item) => [item.id, item.clicks])));
+        setAnalyticsError('');
+      }).catch((error: unknown) => {
+        if (active) setAnalyticsError(error instanceof Error ? error.message : 'Analytics could not be loaded.');
+      }).finally(() => {
+        if (active) setIsAnalyticsLoading(false);
+      });
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const filtered = products.filter((p) => {
     const matchesSearch =
@@ -70,6 +95,12 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ products, onRefres
             Manage your affiliate items, custom video reviews, and direct Buy Now links
           </p>
         </div>
+
+        {analyticsError && (
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+            Click analytics are unavailable: {analyticsError}
+          </p>
+        )}
 
         <button
           onClick={handleOpenAdd}
@@ -190,7 +221,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ products, onRefres
                     <td className="py-3 px-4 text-center">
                       <span className="inline-flex items-center gap-1 font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-xs tabular-nums">
                         <MousePointerClick className="w-3 h-3" />
-                        {store.getProductClicks(prod.id)}
+                        {analyticsError || isAnalyticsLoading ? '—' : (clickCounts[prod.id] || 0)}
                       </span>
                     </td>
 

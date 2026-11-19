@@ -121,6 +121,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    store.recordVisitorSession(pageViewUrl);
     pixelService.trackPageView();
   }, [pageViewUrl]);
 

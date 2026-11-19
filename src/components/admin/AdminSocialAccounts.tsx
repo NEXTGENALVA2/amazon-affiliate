@@ -3,6 +3,7 @@ import { CheckCircle2, ExternalLink, Link2, Plus, Save, Trash2 } from 'lucide-re
 import { store } from '../../services/store';
 import { uploadImageToSupabase } from '../../services/storage';
 import { SocialChannel, SocialLink, SocialSettings, StoreSettings } from '../../types';
+import { fetchAnalytics } from '../../services/analytics';
 
 const SOCIAL_CHANNELS: Array<{ channel: SocialChannel; label: string }> = [
   { channel: 'whatsapp', label: 'WhatsApp' },
@@ -24,10 +25,18 @@ export const AdminSocialAccounts: React.FC = () => {
   const [isSavingStore, setIsSavingStore] = useState(false);
   const [isUploadingPreviewImage, setIsUploadingPreviewImage] = useState(false);
   const [storeSaved, setStoreSaved] = useState(false);
+  const [officialStoreClicks, setOfficialStoreClicks] = useState<number | null>(null);
+  const [analyticsError, setAnalyticsError] = useState('');
 
   useEffect(() => {
     setSettings(store.getSocialSettings());
     setStoreSettings(store.getStoreSettings());
+    fetchAnalytics('all').then((summary) => {
+      const officialStore = summary.topClickedProducts.find((item) => item.id === 'kefayaan-official-store');
+      setOfficialStoreClicks(officialStore?.clicks || 0);
+    }).catch((error: unknown) => {
+      setAnalyticsError(error instanceof Error ? error.message : 'Analytics could not be loaded.');
+    });
   }, []);
 
   const updateSettings = (patch: Partial<SocialSettings>) => {
@@ -270,13 +279,18 @@ export const AdminSocialAccounts: React.FC = () => {
           {storeSaved && <p role="status" className="md:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-700">Store settings saved for all visitors.</p>}
           <div className="flex items-center justify-between gap-3 md:col-span-2">
             <span className="text-[11px] text-slate-500">
-              Official store clicks: {storeSettings.officialStoreClicksCount || 0}
+              Official store clicks: {officialStoreClicks === null ? '—' : officialStoreClicks.toLocaleString()}
             </span>
             <button type="submit" disabled={isSavingStore || isUploadingPreviewImage} className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-2.5 font-bold text-slate-950 hover:bg-amber-500 disabled:cursor-wait disabled:opacity-60">
               <Save className="h-4 w-4" />
               {isUploadingPreviewImage ? 'Uploading image...' : isSavingStore ? 'Saving...' : 'Save Store Settings'}
             </button>
           </div>
+          {analyticsError && (
+            <p role="alert" className="md:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+              Click analytics are unavailable: {analyticsError}
+            </p>
+          )}
         </form>
       </section>
 

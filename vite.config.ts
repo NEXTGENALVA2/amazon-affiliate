@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
+import analyticsApi from './api/analytics.js';
 import adminAuthApi from './api/admin-auth.js';
 import blogPreviewApi from './api/blog-preview.js';
 import productPreviewApi from './api/product-preview.js';
@@ -66,6 +67,8 @@ export default defineConfig(({ mode }) => {
                 ? productPreviewImageApi
               : pathname === '/api/admin-auth'
               ? adminAuthApi
+              : pathname === '/api/analytics'
+                ? analyticsApi
               : pathname === '/api/site-settings'
                 ? siteSettingsApi
                 : null;

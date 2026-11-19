@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Users,
   MousePointerClick,
@@ -8,7 +8,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { Product } from '../../types';
-import { store } from '../../services/store';
+import { emptyAnalyticsSummary, fetchAnalytics } from '../../services/analytics';
 import { formatCurrency } from '../../utils/helpers';
 
 interface AdminOverviewProps {
@@ -22,8 +22,38 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   onNavigate,
   onOpenAddProduct,
 }) => {
-  const todayAnalytics = store.getAnalytics('today');
-  const monthAnalytics = store.getAnalytics('this_month');
+  const [todayAnalytics, setTodayAnalytics] = useState(emptyAnalyticsSummary);
+  const [monthAnalytics, setMonthAnalytics] = useState(emptyAnalyticsSummary);
+  const [allTimeAnalytics, setAllTimeAnalytics] = useState(emptyAnalyticsSummary);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      Promise.all([
+        fetchAnalytics('today'),
+        fetchAnalytics('this_month'),
+        fetchAnalytics('all'),
+      ]).then(([today, month, allTime]) => {
+        if (!active) return;
+        setTodayAnalytics(today);
+        setMonthAnalytics(month);
+        setAllTimeAnalytics(allTime);
+        setAnalyticsError('');
+      }).catch((error: unknown) => {
+        if (active) setAnalyticsError(error instanceof Error ? error.message : 'Analytics could not be loaded.');
+      }).finally(() => {
+        if (active) setIsAnalyticsLoading(false);
+      });
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -37,7 +67,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             Kefayaan Control Center
           </h2>
           <p className="text-slate-300 text-xs sm:text-sm max-w-xl">
-            Live visitor analytics, outbound Amazon Buy Now click tracking, and Meta/TikTok/Google ad pixel conversions.
+            Shared visitor analytics, outbound retailer click tracking, and Meta/TikTok/Google pixel events.
           </p>
         </div>
 
@@ -58,6 +88,12 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         </div>
       </div>
 
+      {analyticsError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+          Analytics are unavailable: {analyticsError}
+        </p>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Today's Visitors */}
@@ -67,10 +103,10 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <Users className="w-4 h-4 text-slate-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-slate-950 font-mono tabular-nums">
-            {todayAnalytics.totalVisitors}
+            {isAnalyticsLoading || analyticsError ? '—' : todayAnalytics.totalVisitors.toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-500">
-            {todayAnalytics.uniqueSessions} unique devices logged today
+            {isAnalyticsLoading || analyticsError ? 'Waiting for shared analytics' : `${todayAnalytics.uniqueSessions} unique sessions recorded today`}
           </div>
         </div>
 
@@ -81,10 +117,10 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <Users className="w-4 h-4 text-indigo-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 font-mono tabular-nums">
-            {monthAnalytics.totalVisitors.toLocaleString()}
+            {isAnalyticsLoading || analyticsError ? '—' : monthAnalytics.totalVisitors.toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-500">
-            Total active monthly site traffic
+            {isAnalyticsLoading || analyticsError ? 'Waiting for shared analytics' : 'Unique sessions recorded this month'}
           </div>
         </div>
 
@@ -95,10 +131,10 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <MousePointerClick className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono tabular-nums">
-            {todayAnalytics.totalClicks.toLocaleString()}
+            {isAnalyticsLoading || analyticsError ? '—' : todayAnalytics.totalClicks.toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-500">
-            {monthAnalytics.totalClicks.toLocaleString()} total clicks recorded this month
+            {isAnalyticsLoading || analyticsError ? 'Waiting for shared analytics' : `${monthAnalytics.totalClicks.toLocaleString()} clicks recorded this month`}
           </div>
         </div>
 
@@ -121,7 +157,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
           <div className="divide-y divide-slate-100">
             {products.slice(0, 4).map((p) => {
-              const liveClicks = store.getProductClicks(p.id);
+              const liveClicks = allTimeAnalytics.topClickedProducts.find((item) => item.id === p.id)?.clicks ?? 0;
               return (
                 <div key={p.id} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
@@ -141,7 +177,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-xs font-mono font-bold text-amber-600 tabular-nums">
-                      {liveClicks} clicks
+                      {analyticsError || isAnalyticsLoading ? '—' : `${liveClicks} clicks`}
                     </span>
                     <a
                       href={p.amazonUrl}

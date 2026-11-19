@@ -3,12 +3,12 @@ import {
   ProductVariant,
   StoreSettings,
   OutboundClick,
-  VisitorLog,
   SocialChannel,
   PixelSettings,
   PixelEventLog,
 } from '../types';
 import { hasSupabase, supabase } from './supabase';
+import { recordAnalyticsEvent } from './analytics';
 import { loginAdmin as loginAdminRequest, logoutAdmin as logoutAdminRequest, verifyAdminSession } from './adminAuth';
 import {
   getPublicSocialSettings,
@@ -36,8 +36,6 @@ const LEGACY_LOGO_URL = '/assets/aistudio/DP_af5fa802.png';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'auragear_products_v2',
-  CLICKS: 'auragear_clicks_v1',
-  VISITORS: 'auragear_visitors_v1',
   SOCIAL_SETTINGS: 'auragear_social_settings_v1',
   STORE_SETTINGS: 'kefayaan_store_settings_v1',
   PIXEL_SETTINGS: 'kefayaan_pixel_settings_v1',
@@ -53,7 +51,6 @@ const DEFAULT_STORE_SETTINGS: StoreSettings = {
   logoUrl: DEFAULT_LOGO_URL,
   amazonOfficialStoreUrl: 'https://link.amazon/B0dbjUEFY',
   defaultAffiliateTag: 'kefayaan-20',
-  officialStoreClicksCount: 328,
   heroHeadline: 'Thoughtfully selected products, clearly presented.',
   heroSubtitle: 'Compare useful details, then visit the retailer for current price and availability.',
 };
@@ -139,8 +136,6 @@ const INITIAL_PRODUCTS: Product[] = [
     description: 'A wet cat food option featuring salmon and chicken. Check the retailer listing for current ingredients, package details, and feeding guidance.',
     badge: "Amazon's Choice",
     inStock: true,
-    clicksCount: 388,
-    viewsCount: 4890,
     createdAt: '2026-10-20T10:00:00Z',
     updatedAt: '2026-11-02T14:20:00Z',
   },
@@ -208,8 +203,6 @@ const INITIAL_PRODUCTS: Product[] = [
     description: 'The world’s most trusted post-workout supplement. Gold Standard 100% Whey uses primary Whey Protein Isolates to maximize absorption speed, muscle recovery, and workout endurance.',
     badge: '',
     inStock: true,
-    clicksCount: 512,
-    viewsCount: 6310,
     createdAt: '2026-10-22T09:00:00Z',
     updatedAt: '2026-11-02T15:10:00Z',
   },
@@ -259,8 +252,6 @@ const INITIAL_PRODUCTS: Product[] = [
     description: 'Transform your daily meal prep. The dual independent zones let you roast chicken wings at 400°F on the left while air-frying crispy french fries at 375°F on the right, finishing at the exact same second.',
     badge: "Editor's Choice",
     inStock: true,
-    clicksCount: 426,
-    viewsCount: 5200,
     createdAt: '2026-10-25T11:00:00Z',
     updatedAt: '2026-11-02T16:00:00Z',
   },
@@ -290,8 +281,6 @@ const INITIAL_PRODUCTS: Product[] = [
     description: 'Immerse yourself completely in cutting-edge simulation, gaming, and multi-window productivity with the groundbreaking Odyssey Neo G9. Features industry-leading Mini-LED backlighting.',
     badge: 'Trending Deal',
     inStock: true,
-    clicksCount: 142,
-    viewsCount: 1890,
     createdAt: '2026-10-15T10:00:00Z',
     updatedAt: '2026-10-30T14:20:00Z',
   },
@@ -321,8 +310,6 @@ const INITIAL_PRODUCTS: Product[] = [
     description: 'The standard for audiophiles and travelers alike. Industry-leading noise cancellation engineered with two processors and carbon fiber composite drivers for pristine high frequencies.',
     badge: "Amazon's Choice",
     inStock: true,
-    clicksCount: 318,
-    viewsCount: 4210,
     createdAt: '2026-10-12T08:00:00Z',
     updatedAt: '2026-10-31T01:10:00Z',
   },
@@ -352,8 +339,6 @@ const INITIAL_PRODUCTS: Product[] = [
     description: 'Crafted for enthusiasts who demand tactile perfection and acoustics. The double-gasket design delivers deep, thocky acoustics with custom programmability via QMK/VIA.',
     badge: 'Trending Deal',
     inStock: true,
-    clicksCount: 204,
-    viewsCount: 2750,
     createdAt: '2026-10-18T14:30:00Z',
     updatedAt: '2026-10-29T11:45:00Z',
   },
@@ -383,72 +368,19 @@ const INITIAL_PRODUCTS: Product[] = [
     description: 'The gold standard of posture health and modern office design. Features zonal tension distribution to eliminate pressure points and maintain ideal blood circulation.',
     badge: 'Top Rated',
     inStock: true,
-    clicksCount: 98,
-    viewsCount: 1640,
     createdAt: '2026-10-08T09:15:00Z',
     updatedAt: '2026-10-28T16:00:00Z',
   },
 ];
 
-// Helper to generate seed historical data for analytics
-const generateHistoricalData = () => {
-  const visitors: VisitorLog[] = [];
-  const clicks: OutboundClick[] = [];
-  const devices: ('desktop' | 'mobile' | 'tablet')[] = ['desktop', 'desktop', 'mobile', 'mobile', 'tablet'];
-
-  const now = new Date('2026-10-31T00:41:30Z');
-
-  // Generate for past 35 days to allow full month + daily views
-  for (let i = 34; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
-    const monthStr = dateStr.substring(0, 7);
-
-    // 80 to 220 visitors per day
-    const dayVisitors = 95 + Math.floor(Math.sin(i * 0.7) * 45) + (i % 7 === 0 ? 55 : 20);
-    for (let v = 0; v < dayVisitors; v++) {
-      const hour = Math.floor(Math.random() * 24);
-      const dev = devices[Math.floor(Math.random() * devices.length)];
-      visitors.push({
-        id: `vis-${dateStr}-${v}`,
-        sessionId: `sess-${dateStr}-${v}`,
-        timestamp: `${dateStr}T${hour.toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}:00Z`,
-        date: dateStr,
-        month: monthStr,
-        hour,
-        device: dev,
-        page: v % 5 === 0 ? '/reviews' : '/',
-      });
-
-      // Around 12% to 22% of visitors click an Amazon affiliate button
-      if (Math.random() < 0.16) {
-        const prod = INITIAL_PRODUCTS[Math.floor(Math.random() * INITIAL_PRODUCTS.length)];
-        clicks.push({
-          id: `clk-${dateStr}-${v}`,
-          productId: prod.id,
-          productTitle: prod.title,
-          timestamp: `${dateStr}T${hour.toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}:00Z`,
-          date: dateStr,
-          month: monthStr,
-          targetUrl: prod.amazonUrl,
-          device: dev,
-          browser: 'Chrome / Safari',
-        });
-      }
-    }
-  }
-
-  return { visitors, clicks };
-};
-
 class StoreService {
   private products: Product[] = [];
-  private clicks: OutboundClick[] = [];
-  private visitors: VisitorLog[] = [];
   private listeners: (() => void)[] = [];
   private productsReady = false;
   private adminUsername = '';
+  private visitorSessionId = '';
+  private visitorSessionLastActivity = 0;
+  private lastRecordedVisitorSessionId = '';
 
   constructor() {
     this.init();
@@ -504,29 +436,12 @@ class StoreService {
 
       this.saveProducts(false);
 
-      // Clicks & Visitors
-      const savedClicks = localStorage.getItem(STORAGE_KEYS.CLICKS);
-      const savedVisitors = localStorage.getItem(STORAGE_KEYS.VISITORS);
-
-      if (savedClicks && savedVisitors) {
-        this.clicks = JSON.parse(savedClicks);
-        this.visitors = JSON.parse(savedVisitors);
-      } else {
-        const { visitors, clicks } = generateHistoricalData();
-        this.visitors = visitors;
-        this.clicks = clicks;
-        this.saveVisitors();
-        this.saveClicks();
-      }
-
+      localStorage.removeItem('auragear_clicks_v1');
+      localStorage.removeItem('auragear_visitors_v1');
     } catch {
       this.products = INITIAL_PRODUCTS;
-      const { visitors, clicks } = generateHistoricalData();
-      this.visitors = visitors;
-      this.clicks = clicks;
     }
 
-    this.recordVisitorSession();
     this.syncCloudProducts();
     void this.syncCloudSocialSettings();
     void this.syncCloudStoreSettings();
@@ -619,36 +534,71 @@ class StoreService {
   // --- Visitor Session Recording ---
   public recordVisitorSession(page = '/') {
     try {
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
-      const monthStr = dateStr.substring(0, 7);
-      let sessionId = sessionStorage.getItem('auragear_sess_id');
-      if (!sessionId) {
-        sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        sessionStorage.setItem('auragear_sess_id', sessionId);
-      }
-
-      const isMobile = window.innerWidth < 768;
-      const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
-      const device = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
-
-      const newLog: VisitorLog = {
-        id: `vis_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        sessionId,
-        timestamp: now.toISOString(),
-        date: dateStr,
-        month: monthStr,
-        hour: now.getHours(),
-        device,
-        page,
-      };
-
-      this.visitors.push(newLog);
-      this.saveVisitors();
-      this.notify();
-    } catch (e) {
-      console.warn('Could not record session', e);
+      const sessionId = this.getVisitorSessionId();
+      if (sessionId === this.lastRecordedVisitorSessionId) return;
+      this.lastRecordedVisitorSessionId = sessionId;
+      const device = this.getDeviceType();
+      void recordAnalyticsEvent({ type: 'visitor', sessionId, device, page })
+        .catch((error: unknown) => {
+          if (this.lastRecordedVisitorSessionId === sessionId) this.lastRecordedVisitorSessionId = '';
+          console.error('Visitor analytics could not be recorded', error);
+        });
+    } catch (error) {
+      console.error('Visitor analytics could not be recorded', error);
     }
+  }
+
+  private getVisitorSessionId(): string {
+    const now = Date.now();
+    const sessionTimeoutMs = 30 * 60 * 1000;
+    if (this.visitorSessionId && now - this.visitorSessionLastActivity <= sessionTimeoutMs) {
+      this.visitorSessionLastActivity = now;
+      try {
+        sessionStorage.setItem('kefayaan_analytics_session', JSON.stringify({
+          id: this.visitorSessionId,
+          lastActivity: now,
+        }));
+      } catch (error) {
+        console.warn('Analytics session could not be cached in this browser', error);
+      }
+      return this.visitorSessionId;
+    }
+
+    let sessionId = '';
+    try {
+      const saved = sessionStorage.getItem('kefayaan_analytics_session');
+      const parsed = saved ? JSON.parse(saved) as { id?: unknown; lastActivity?: unknown } : null;
+      if (
+        parsed &&
+        typeof parsed.id === 'string' &&
+        /^[A-Za-z0-9_-]{12,128}$/.test(parsed.id) &&
+        typeof parsed.lastActivity === 'number' &&
+        parsed.lastActivity <= now &&
+        now - parsed.lastActivity <= sessionTimeoutMs
+      ) {
+        sessionId = parsed.id;
+      }
+    } catch (error) {
+      console.warn('Saved analytics session could not be read', error);
+    }
+    if (!sessionId) sessionId = `sess_${now}_${Math.random().toString(36).substring(2, 12)}`;
+    this.visitorSessionId = sessionId;
+    this.visitorSessionLastActivity = now;
+    try {
+      sessionStorage.setItem('kefayaan_analytics_session', JSON.stringify({
+        id: sessionId,
+        lastActivity: now,
+      }));
+    } catch (error) {
+      console.warn('Analytics session could not be cached in this browser', error);
+    }
+    return sessionId;
+  }
+
+  private getDeviceType(): 'desktop' | 'mobile' | 'tablet' {
+    if (window.innerWidth < 768) return 'mobile';
+    if (window.innerWidth < 1024) return 'tablet';
+    return 'desktop';
   }
 
   // --- Products CRUD ---
@@ -693,8 +643,6 @@ class StoreService {
         isBestSeller: product.isBestSeller === true,
         productButtonLabel: product.productButtonLabel?.trim() || undefined,
         inStock: product.inStock !== undefined ? product.inStock : true,
-        clicksCount: 0,
-        viewsCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -743,23 +691,20 @@ class StoreService {
   }
 
   // --- Outbound Retailer Click Tracking ---
-  public getProductClicks(productId: string): number {
-    const prod = this.products.find(p => p.id === productId);
-    const loggedClicks = this.clicks.filter(c => c.productId === productId).length;
-    return Math.max(prod?.clicksCount || 0, loggedClicks);
-  }
-
   public trackAmazonClick(productId: string, customUrl?: string): OutboundClick {
     const prod = this.products.find(p => p.id === productId);
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const monthStr = dateStr.substring(0, 7);
 
-    const isMobile = window.innerWidth < 768;
-    const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
-    const device = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
+    const device = this.getDeviceType();
 
     const targetUrl = customUrl || (prod ? prod.amazonUrl : 'https://amazon.com');
+    const browser = navigator.userAgent.includes('Firefox')
+      ? 'Firefox'
+      : navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
+        ? 'Safari'
+        : navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other';
 
     const clickRecord: OutboundClick = {
       id: `clk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -770,110 +715,20 @@ class StoreService {
       month: monthStr,
       targetUrl,
       device,
-      browser: navigator.userAgent.includes('Firefox') ? 'Firefox' : navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome') ? 'Safari' : 'Chrome',
+      browser,
     };
 
-    this.clicks.unshift(clickRecord);
-    this.saveClicks();
-
-    // Increment click count on product
-    if (prod) {
-      prod.clicksCount = (prod.clicksCount || 0) + 1;
-      this.saveProducts();
-    }
-
-    this.notify();
+    void recordAnalyticsEvent({
+      type: 'outbound_click',
+      eventId: clickRecord.id,
+      sessionId: this.getVisitorSessionId(),
+      productId: clickRecord.productId,
+      productTitle: clickRecord.productTitle,
+      targetUrl: clickRecord.targetUrl,
+      device,
+      browser,
+    }).catch((error: unknown) => console.error('Retailer click analytics could not be recorded', error));
     return clickRecord;
-  }
-
-  // --- Analytics & Visitor Queries with Filters ---
-  public getAnalytics(filterPeriod: 'today' | '7days' | 'this_month' | '30days' | 'yearly' | 'all') {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const currentMonthStr = todayStr.substring(0, 7);
-
-    let filteredVisitors = [...this.visitors];
-    let filteredClicks = [...this.clicks];
-
-    const d7 = new Date(now);
-    d7.setDate(d7.getDate() - 7);
-    const d7Str = d7.toISOString().split('T')[0];
-
-    const d30 = new Date(now);
-    d30.setDate(d30.getDate() - 30);
-    const d30Str = d30.toISOString().split('T')[0];
-
-    const yearStart = `${now.getFullYear()}-01-01`;
-
-    if (filterPeriod === 'today') {
-      filteredVisitors = this.visitors.filter(v => v.date === todayStr);
-      filteredClicks = this.clicks.filter(c => c.date === todayStr);
-    } else if (filterPeriod === '7days') {
-      filteredVisitors = this.visitors.filter(v => v.date >= d7Str);
-      filteredClicks = this.clicks.filter(c => c.date >= d7Str);
-    } else if (filterPeriod === 'this_month') {
-      filteredVisitors = this.visitors.filter(v => v.month === currentMonthStr);
-      filteredClicks = this.clicks.filter(c => c.month === currentMonthStr);
-    } else if (filterPeriod === '30days') {
-      filteredVisitors = this.visitors.filter(v => v.date >= d30Str);
-      filteredClicks = this.clicks.filter(c => c.date >= d30Str);
-    } else if (filterPeriod === 'yearly') {
-      filteredVisitors = this.visitors.filter(v => v.date >= yearStart);
-      filteredClicks = this.clicks.filter(c => c.date >= yearStart);
-    }
-
-    const totalVisitors = filteredVisitors.length;
-    const uniqueSessions = new Set(filteredVisitors.map(v => v.sessionId)).size;
-    const totalClicks = filteredClicks.length;
-    const clickRate = totalVisitors > 0 ? ((totalClicks / totalVisitors) * 100).toFixed(1) : '0.0';
-
-    // Grouping by Date for charts
-    const dateMap: Record<string, { date: string; visitors: number; clicks: number }> = {};
-
-    filteredVisitors.forEach(v => {
-      if (!dateMap[v.date]) {
-        dateMap[v.date] = { date: v.date, visitors: 0, clicks: 0 };
-      }
-      dateMap[v.date].visitors += 1;
-    });
-
-    filteredClicks.forEach(c => {
-      if (!dateMap[c.date]) {
-        dateMap[c.date] = { date: c.date, visitors: 0, clicks: 0 };
-      }
-      dateMap[c.date].clicks += 1;
-    });
-
-    const timeSeries = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
-
-    // Device breakdown
-    const devices = {
-      desktop: filteredVisitors.filter(v => v.device === 'desktop').length,
-      mobile: filteredVisitors.filter(v => v.device === 'mobile').length,
-      tablet: filteredVisitors.filter(v => v.device === 'tablet').length,
-    };
-
-    // Product Clicks Ranking
-    const productClickMap: Record<string, { id: string; title: string; clicks: number }> = {};
-    filteredClicks.forEach(c => {
-      if (!productClickMap[c.productId]) {
-        productClickMap[c.productId] = { id: c.productId, title: c.productTitle, clicks: 0 };
-      }
-      productClickMap[c.productId].clicks += 1;
-    });
-
-    const topClickedProducts = Object.values(productClickMap).sort((a, b) => b.clicks - a.clicks);
-
-    return {
-      totalVisitors,
-      uniqueSessions,
-      totalClicks,
-      clickRate,
-      timeSeries,
-      devices,
-      topClickedProducts,
-      recentClicks: filteredClicks.slice(0, 20),
-    };
   }
 
   // --- Admin Authentication ---
@@ -1004,8 +859,6 @@ class StoreService {
 
   public trackOfficialStoreClick(): OutboundClick {
     const settings = this.getStoreSettings();
-    const count = (settings.officialStoreClicksCount || 0) + 1;
-    this.updateStoreSettings({ officialStoreClicksCount: count });
     return this.trackAmazonClick('kefayaan-official-store', settings.amazonOfficialStoreUrl);
   }
 
@@ -1067,12 +920,6 @@ class StoreService {
       const savedProds = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (savedProds) this.products = JSON.parse(savedProds);
 
-      const savedClicks = localStorage.getItem(STORAGE_KEYS.CLICKS);
-      if (savedClicks) this.clicks = JSON.parse(savedClicks);
-
-      const savedVisitors = localStorage.getItem(STORAGE_KEYS.VISITORS);
-      if (savedVisitors) this.visitors = JSON.parse(savedVisitors);
-
     } catch {}
   }
 
@@ -1102,26 +949,10 @@ class StoreService {
     if (persistToCloud) this.persistProductsToSupabase();
   }
 
-  private saveClicks() {
-    try {
-      localStorage.setItem(STORAGE_KEYS.CLICKS, JSON.stringify(this.clicks.slice(0, 1500)));
-    } catch (e) {
-      console.warn('LocalStorage save failed', e);
-    }
-  }
-
-  private saveVisitors() {
-    try {
-      localStorage.setItem(STORAGE_KEYS.VISITORS, JSON.stringify(this.visitors.slice(0, 3000)));
-    } catch (e) {
-      console.warn('LocalStorage save failed', e);
-    }
-  }
-
   public resetToDefaults() {
     localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
-    localStorage.removeItem(STORAGE_KEYS.CLICKS);
-    localStorage.removeItem(STORAGE_KEYS.VISITORS);
+    localStorage.removeItem('auragear_clicks_v1');
+    localStorage.removeItem('auragear_visitors_v1');
     this.init();
     this.notify();
   }

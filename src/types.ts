@@ -20,7 +20,6 @@ export interface StoreSettings {
   logoUrl: string;
   amazonOfficialStoreUrl: string;
   defaultAffiliateTag: string;
-  officialStoreClicksCount: number;
   heroHeadline: string;
   heroSubtitle: string;
 }
@@ -56,8 +55,6 @@ export interface Product {
   isBestSeller?: boolean;
   productButtonLabel?: string;
   inStock: boolean;
-  clicksCount: number;
-  viewsCount: number;
   createdAt: string;
   updatedAt: string;
 }

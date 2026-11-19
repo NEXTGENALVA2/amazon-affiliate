@@ -476,8 +476,6 @@ class PixelTrackingService {
       features: [],
       description: 'Test fire payload',
       inStock: true,
-      clicksCount: 0,
-      viewsCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

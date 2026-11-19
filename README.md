@@ -36,6 +36,10 @@ Admins can manage enabled social profiles from **Admin → Social Accounts**. To
 
 For local development, add `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` to `.env.local`; the Vite dev server provides local handlers for admin authentication and social settings.
 
+## Shared visitor and retailer-click analytics
+
+Run [`supabase/analytics.sql`](./supabase/analytics.sql) in the Supabase SQL Editor and configure `SUPABASE_URL` plus the server-only `SUPABASE_SERVICE_ROLE_KEY` in Vercel (and `.env.local` for local testing). The admin dashboard then reads shared data from Supabase instead of browser-local or generated history. It records one visitor per browser session and retailer-link clicks; it does not collect IP addresses, and clicks are not confirmed sales. Historical local/demo analytics are intentionally excluded.
+
 ## Product URLs and SEO
 
 Products use shareable `/products/<title-slug>` URLs. Existing `/products/<slug>-<id>` links continue to resolve and are normalized to the canonical title-only URL in the browser. Vercel rewrites social preview crawler requests to a server-rendered metadata endpoint so each product shares its own title, description, and image. Product images hosted on the site or Supabase are rendered on a 1200x630 white canvas with extra margin around the product to prevent overly zoomed social thumbnails; external-hosted images use their original URL. Normal browser requests continue to load the SPA. The Vercel functions also provide a sitemap at `/sitemap.xml` and crawler policy at `/robots.txt`. The sitemap includes seeded products and, when Supabase environment variables are configured for the function, public products from the `products` table.

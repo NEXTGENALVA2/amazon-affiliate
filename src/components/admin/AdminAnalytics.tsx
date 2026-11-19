@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Users,
   MousePointerClick,
@@ -10,16 +10,40 @@ import {
   ExternalLink,
   Filter,
 } from 'lucide-react';
+import { emptyAnalyticsSummary, fetchAnalytics, type AnalyticsSummary } from '../../services/analytics';
 import { store } from '../../services/store';
-import { formatCurrency } from '../../utils/helpers';
 
 export const AdminAnalytics: React.FC = () => {
   const retailerName = store.getStoreSettings().retailerName;
   const [filterPeriod, setFilterPeriod] = useState<'today' | '7days' | 'this_month' | '30days' | 'yearly' | 'all'>('this_month');
   const [hoveredPoint, setHoveredPoint] = useState<{ date: string; visitors: number; clicks: number } | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary>(emptyAnalyticsSummary);
+  const [isLoading, setIsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState('');
 
-  const analytics = useMemo(() => {
-    return store.getAnalytics(filterPeriod);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      setIsLoading(true);
+      setAnalyticsError('');
+      fetchAnalytics(filterPeriod).then((result) => {
+        if (active) setAnalytics(result);
+      }).catch((error: unknown) => {
+        if (active) {
+          setAnalytics(emptyAnalyticsSummary());
+          setAnalyticsError(error instanceof Error ? error.message : 'Analytics could not be loaded.');
+        }
+      }).finally(() => {
+        if (active) setIsLoading(false);
+      });
+    };
+    setHoveredPoint(null);
+    refresh();
+    const interval = window.setInterval(refresh, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [filterPeriod]);
 
   // Export Clicks to CSV
@@ -60,6 +84,12 @@ export const AdminAnalytics: React.FC = () => {
             Visitor trends and outbound clicks to {retailerName}
           </p>
         </div>
+
+        {analyticsError && (
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+            Analytics are unavailable: {analyticsError}
+          </p>
+        )}
 
         {/* Filter Period Buttons */}
         <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl overflow-x-auto">
@@ -165,10 +195,10 @@ export const AdminAnalytics: React.FC = () => {
             <Users className="w-4 h-4 text-slate-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-slate-950 font-mono tabular-nums">
-            {analytics.totalVisitors.toLocaleString()}
+            {isLoading || analyticsError ? '—' : analytics.totalVisitors.toLocaleString()}
           </div>
           <div className="text-xs text-slate-500">
-            <span className="font-semibold text-slate-900 font-mono tabular-nums">{analytics.uniqueSessions}</span> unique sessions logged
+            {isLoading || analyticsError ? 'Waiting for shared analytics' : <><span className="font-semibold text-slate-900 font-mono tabular-nums">{analytics.uniqueSessions}</span> unique sessions logged</>}
           </div>
         </div>
 
@@ -179,7 +209,7 @@ export const AdminAnalytics: React.FC = () => {
             <MousePointerClick className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono tabular-nums">
-            {analytics.totalClicks.toLocaleString()}
+            {isLoading || analyticsError ? '—' : analytics.totalClicks.toLocaleString()}
           </div>
           <div className="text-xs text-slate-500">
             Clicks to product pages on {retailerName}
@@ -193,7 +223,7 @@ export const AdminAnalytics: React.FC = () => {
             <TrendingUp className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono tabular-nums">
-            {analytics.clickRate}%
+            {isLoading || analyticsError ? '—' : `${analytics.clickRate}%`}
           </div>
           <div className="text-xs text-slate-500">
             Percentage of visitors clicking retailer product links
