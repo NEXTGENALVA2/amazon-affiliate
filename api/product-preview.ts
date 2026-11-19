@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getProductPath, getProductRouteSlug } from '../src/utils/productRoutes.js';
+import { getYouTubeEmbedUrl } from '../src/utils/helpers.js';
 import { getSiteOrigin } from './siteOrigin.js';
 import { getProductForPreview } from './product-data.js';
 
@@ -134,6 +135,20 @@ export default async function handler(request: IncomingMessage, response: Server
     const productImages = productImageUrls.slice(1).map((image, index) =>
       `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.imageAlt || `${product.title} product photo`)} ${index + 2}" loading="lazy" width="800" height="600">`,
     ).join('\n      ');
+    const youtubeEmbedUrl = product.videoType === 'youtube' && product.videoUrl
+      ? getYouTubeEmbedUrl(product.videoUrl)
+      : null;
+    const safeYoutubeEmbedUrl = youtubeEmbedUrl
+      ? getSafeImageUrl(youtubeEmbedUrl, origin)
+      : undefined;
+    const directVideoUrl = product.videoType === 'direct' && product.videoUrl
+      ? getSafeImageUrl(product.videoUrl, origin)
+      : undefined;
+    const productVideoMarkup = safeYoutubeEmbedUrl
+      ? `<section><h2>Product video</h2><iframe src="${escapeHtml(safeYoutubeEmbedUrl)}" title="Product video for ${escapeHtml(product.title)}" width="560" height="315" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></section>`
+      : directVideoUrl
+        ? `<section><h2>Product video</h2><video controls preload="metadata" width="560" height="315"><source src="${escapeHtml(directVideoUrl)}" type="video/mp4"></video></section>`
+        : '';
     const price = safePrice ? `$${safePrice}` : '';
     const listPrice = Number.isFinite(product.price) && product.price > product.dealPrice
       ? `<del>$${product.price.toFixed(2)}</del> `
@@ -189,6 +204,7 @@ export default async function handler(request: IncomingMessage, response: Server
         <h1>${escapeHtml(product.title)}</h1>
         ${safeBrand}
         ${safeCategory}
+        ${productVideoMarkup}
         ${productImageMarkup}
         ${productImages}
         <p>${escapeHtml(productDescription || description)}</p>
