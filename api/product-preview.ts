@@ -82,12 +82,14 @@ export default async function handler(request: IncomingMessage, response: Server
       ? product.dealPrice.toFixed(2)
       : null;
     let imageUrl = new URL('/assets/brand/kefayaan-logo.jpg', origin).href;
+    let shareImageAlt = 'Kefayaan logo';
     let hasOptimizedImage = false;
     try {
       const candidate = await getShareImage(product.image, origin, routeSlug);
       const candidateUrl = new URL(candidate.url);
       if (candidateUrl.protocol === 'http:' || candidateUrl.protocol === 'https:') {
         imageUrl = candidateUrl.href;
+        shareImageAlt = product.imageAlt || product.title;
         hasOptimizedImage = candidate.optimized;
       }
     } catch (error) {
@@ -110,12 +112,25 @@ export default async function handler(request: IncomingMessage, response: Server
         availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       } : undefined,
     };
-    const jsonLd = JSON.stringify(structuredData).replace(/</g, '\\u003c');
+    const jsonLd = JSON.stringify([
+      structuredData,
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
+          { '@type': 'ListItem', position: 2, name: product.title, item: canonicalUrl },
+        ],
+      },
+    ]).replace(/</g, '\\u003c');
     const escapedTitle = escapeHtml(title);
     const escapedDescription = escapeHtml(description);
     const escapedImage = escapeHtml(imageUrl);
     const escapedUrl = escapeHtml(canonicalUrl);
     const escapedProductImage = productImageUrls[0] ? escapeHtml(productImageUrls[0]) : '';
+    const productImagePreload = escapedProductImage
+      ? `<link rel="preload" as="image" href="${escapedProductImage}" fetchpriority="high">`
+      : '';
     const productImages = productImageUrls.slice(1).map((image, index) =>
       `<img src="${escapeHtml(image)}" alt="${escapeHtml(product.imageAlt || `${product.title} product photo`)} ${index + 2}" loading="lazy" width="800" height="600">`,
     ).join('\n      ');
@@ -134,7 +149,7 @@ export default async function handler(request: IncomingMessage, response: Server
       ? `<img src="${escapedProductImage}" alt="${escapeHtml(product.imageAlt || `${product.title} product photo`)}" width="800" height="600" fetchpriority="high">`
       : '';
     const imageDimensions = hasOptimizedImage
-      ? '<meta property="og:image:width" content="1200">\n    <meta property="og:image:height" content="630">'
+      ? '<meta property="og:image:secure_url" content="' + escapeHtml(imageUrl) + '">\n    <meta property="og:image:type" content="image/jpeg">\n    <meta property="og:image:width" content="1200">\n    <meta property="og:image:height" content="630">'
       : '';
     const html = `<!doctype html>
 <html lang="en">
@@ -143,24 +158,27 @@ export default async function handler(request: IncomingMessage, response: Server
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapedTitle}</title>
     <meta name="description" content="${escapedDescription}">
+    <meta name="theme-color" content="#0f172a">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapedUrl}">
+    ${productImagePreload}
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
+    <meta property="og:locale" content="en_US">
     <meta property="og:type" content="product">
     <meta property="og:title" content="${escapedTitle}">
     <meta property="og:description" content="${escapedDescription}">
     <meta property="og:url" content="${escapedUrl}">
     <meta property="og:image" content="${escapedImage}">
     ${imageDimensions}
-    <meta property="og:image:alt" content="${escapeHtml(product.title)}">
+    <meta property="og:image:alt" content="${escapeHtml(shareImageAlt)}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapedTitle}">
     <meta name="twitter:description" content="${escapedDescription}">
     <meta name="twitter:image" content="${escapedImage}">
-    <meta name="twitter:image:alt" content="${escapeHtml(product.title)}">
+    <meta name="twitter:image:alt" content="${escapeHtml(shareImageAlt)}">
     <script type="application/ld+json">${jsonLd}</script>
   </head>
   <body>

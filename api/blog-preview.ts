@@ -37,28 +37,40 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string, 
   const relatedProducts = getRelatedProducts(article, products);
   const imageUrl = relatedProducts.map((product) => getProductImageUrl(product, origin)).find(Boolean) ||
     `${origin}/assets/brand/kefayaan-logo.jpg`;
-  const jsonLd = JSON.stringify({
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: article.title,
-    description,
-    image: [imageUrl],
-    datePublished: article.publishedAt,
-    dateModified: article.publishedAt,
-    author: { '@type': 'Organization', name: 'Kefayaan Editorial Team' },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Kefayaan',
-      url: `${origin}/`,
-      logo: { '@type': 'ImageObject', url: `${origin}/assets/brand/kefayaan-logo.jpg` },
+  const jsonLd = JSON.stringify([
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: article.title,
+      description,
+      image: [imageUrl],
+      datePublished: article.publishedAt,
+      dateModified: article.publishedAt,
+      articleSection: article.category,
+      author: { '@type': 'Organization', name: 'Kefayaan Editorial Team' },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Kefayaan',
+        url: `${origin}/`,
+        logo: { '@type': 'ImageObject', url: `${origin}/assets/brand/kefayaan-logo.jpg` },
+      },
+      mentions: relatedProducts.map((product) => ({
+        '@type': 'Product',
+        name: product.title,
+        url: new URL(getProductPath(product), origin).href,
+      })),
+      mainEntityOfPage: url,
     },
-    mentions: relatedProducts.map((product) => ({
-      '@type': 'Product',
-      name: product.title,
-      url: new URL(getProductPath(product), origin).href,
-    })),
-    mainEntityOfPage: url,
-  }).replace(/</g, '\\u003c');
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
+        { '@type': 'ListItem', position: 2, name: 'Buying Guides', item: `${origin}/blog` },
+        { '@type': 'ListItem', position: 3, name: article.title, item: url },
+      ],
+    },
+  ]).replace(/</g, '\\u003c');
   const sections = article.sections.map((section) => `
     <section>
       <h2>${escapeHtml(section.heading)}</h2>
@@ -91,22 +103,28 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string, 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}">
+    <meta name="theme-color" content="#0f172a">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapeHtml(url)}">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
+    <meta property="og:locale" content="en_US">
     <meta property="og:type" content="article">
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
     <meta property="og:url" content="${escapeHtml(url)}">
     <meta property="og:image" content="${escapeHtml(imageUrl)}">
-    <meta property="og:image:alt" content="${escapeHtml(relatedProducts[0]?.title || 'Kefayaan buying guide')}">
+    <meta property="og:image:alt" content="${escapeHtml(relatedProducts[0]?.imageAlt || relatedProducts[0]?.title || 'Kefayaan buying guide')}">
+    <meta property="article:published_time" content="${escapeHtml(article.publishedAt)}">
+    <meta property="article:modified_time" content="${escapeHtml(article.publishedAt)}">
+    <meta property="article:section" content="${escapeHtml(article.category)}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(title)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}">
+    <meta name="twitter:image:alt" content="${escapeHtml(relatedProducts[0]?.imageAlt || relatedProducts[0]?.title || 'Kefayaan buying guide')}">
     <script type="application/ld+json">${jsonLd}</script>
   </head>
   <body>
@@ -143,6 +161,14 @@ const renderIndex = (origin: string, products: Product[]): string => {
   const url = `${origin}/blog`;
   const title = 'Kefayaan Buying Guides | Practical Product Advice';
   const description = 'Product-focused buying guides with catalog examples, practical comparison checklists, and current retailer buying options.';
+  const featuredProduct = BLOG_ARTICLES
+    .map((article) => getRelatedProducts(article, products, 1)[0])
+    .find((product) => Boolean(product));
+  const featuredImageUrl = featuredProduct ? getProductImageUrl(featuredProduct, origin) : undefined;
+  const imageUrl = featuredImageUrl || `${origin}/assets/social/kefayaan-share.jpg`;
+  const imageAlt = featuredImageUrl
+    ? featuredProduct?.imageAlt || featuredProduct?.title || 'Kefayaan buying guides'
+    : 'Kefayaan buying guides';
   const cards = BLOG_ARTICLES.map((article) => {
     const guideUrl = `${origin}/blog/${article.slug}`;
     const [product] = getRelatedProducts(article, products, 1);
@@ -158,6 +184,19 @@ const renderIndex = (origin: string, products: Product[]): string => {
         <a href="${escapeHtml(guideUrl)}">Read the guide and compare products</a>
       </article>`;
   }).join('\n');
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: title,
+    url,
+    image: imageUrl,
+    blogPost: BLOG_ARTICLES.map((article) => ({
+      '@type': 'BlogPosting',
+      headline: article.title,
+      url: `${origin}/blog/${article.slug}`,
+      datePublished: article.publishedAt,
+    })),
+  }).replace(/</g, '\\u003c');
 
   return `<!doctype html>
 <html lang="en">
@@ -166,18 +205,27 @@ const renderIndex = (origin: string, products: Product[]): string => {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${title}</title>
     <meta name="description" content="${description}">
+    <meta name="theme-color" content="#0f172a">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${url}">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
+    <meta property="og:locale" content="en_US">
     <meta property="og:type" content="website">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:url" content="${url}">
-    <meta property="og:image" content="${origin}/assets/brand/kefayaan-logo.jpg">
+    <meta property="og:image" content="${escapeHtml(imageUrl)}">
+    <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}">
+    <meta property="og:image:alt" content="${escapeHtml(imageAlt)}">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:image" content="${escapeHtml(imageUrl)}">
+    <meta name="twitter:image:alt" content="${escapeHtml(imageAlt)}">
+    <script type="application/ld+json">${jsonLd}</script>
   </head>
   <body>
     <header>

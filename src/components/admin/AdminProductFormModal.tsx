@@ -664,7 +664,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
                     />
                   </label>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Select 1 to 20 photos at once (.jpg, .png, .webp).
+                    JPEG, PNG, and WebP images are resized to max 1600px and compressed as WebP when smaller. Other formats keep their original file.
                   </p>
                 </div>
               </div>

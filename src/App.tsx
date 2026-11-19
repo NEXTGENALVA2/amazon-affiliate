@@ -236,7 +236,11 @@ export default function App() {
       },
     };
 
-    const relatedBlogProduct = blogArticle ? getRelatedProducts(blogArticle, products, 1)[0] : undefined;
+    const relatedBlogProduct = isBlogPage
+      ? blogArticle
+        ? getRelatedProducts(blogArticle, products, 1)[0]
+        : BLOG_ARTICLES.map((article) => getRelatedProducts(article, products, 1)[0]).find(Boolean)
+      : undefined;
     const socialImageAlt = relatedBlogProduct?.imageAlt || relatedBlogProduct?.title ||
       (routeProduct ? routeProduct.imageAlt || routeProduct.title : 'Kefayaan');
     if (isBlogPage) {
@@ -334,6 +338,7 @@ export default function App() {
     setMetaContent('meta[property="og:title"]', 'property', 'og:title', title);
     setMetaContent('meta[property="og:description"]', 'property', 'og:description', description);
     setMetaContent('meta[property="og:type"]', 'property', 'og:type', isBlogPage && blogArticle ? 'article' : routeProduct ? 'product' : 'website');
+    setMetaContent('meta[property="og:locale"]', 'property', 'og:locale', 'en_US');
     setMetaContent('meta[property="og:url"]', 'property', 'og:url', isBlogPage ? `${origin}${blogSlug ? `/blog/${blogSlug}` : '/blog'}` : pageUrl);
     setMetaContent('meta[property="og:image"]', 'property', 'og:image', image ? new URL(image, origin).href : '');
     setMetaContent('meta[property="og:image:alt"]', 'property', 'og:image:alt', socialImageAlt);

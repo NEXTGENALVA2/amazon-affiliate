@@ -50,9 +50,23 @@ export default async function handler(request: IncomingMessage, response: Server
     const description = 'Browse curated products by category, compare useful details, and read practical buying guides from Kefayaan.';
     const canonicalUrl = `${origin}/`;
     const imageUrl = escapeHtml(parsedImage.href);
+    const secureImageTag = parsedImage.protocol === 'https:'
+      ? `<meta property="og:image:secure_url" content="${imageUrl}">`
+      : '';
     const safeTitle = escapeHtml(title);
     const safeDescription = escapeHtml(description);
     const safeCanonicalUrl = escapeHtml(canonicalUrl);
+    const websiteJsonLd = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Kefayaan',
+      url: canonicalUrl,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${origin}/search?q={search_term_string}`,
+        'query-input': 'required name=search_term_string',
+      },
+    }).replace(/</g, '\\u003c');
     const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -60,22 +74,26 @@ export default async function handler(request: IncomingMessage, response: Server
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${safeTitle}</title>
     <meta name="description" content="${safeDescription}">
+    <meta name="theme-color" content="#0f172a">
     <link rel="canonical" href="${safeCanonicalUrl}">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta property="og:site_name" content="Kefayaan">
+    <meta property="og:locale" content="en_US">
     <meta property="og:type" content="website">
     <meta property="og:title" content="${safeTitle}">
     <meta property="og:description" content="${safeDescription}">
     <meta property="og:url" content="${safeCanonicalUrl}">
     <meta property="og:image" content="${imageUrl}">
-    <meta property="og:image:secure_url" content="${imageUrl}">
+    ${secureImageTag}
     <meta property="og:image:alt" content="Kefayaan — curated products and buying guides">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${safeTitle}">
     <meta name="twitter:description" content="${safeDescription}">
     <meta name="twitter:image" content="${imageUrl}">
+    <meta name="twitter:image:alt" content="Kefayaan — curated products and buying guides">
+    <script type="application/ld+json">${websiteJsonLd}</script>
   </head>
   <body><a href="${safeCanonicalUrl}">${safeTitle}</a></body>
 </html>`;
