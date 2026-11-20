@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ExternalLink,
   ArrowLeft,
@@ -14,6 +14,8 @@ import {
   Star,
   CheckCircle2,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { CatalogView, Product } from './types';
 import { getSocialPlatform, SocialPlatformIcon } from './components/SocialPlatformIcon';
@@ -96,6 +98,7 @@ export default function App() {
   // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const productRailRef = useRef<HTMLDivElement>(null);
 
   const categoryCounts = getProductCategoryCounts(products);
   const categories = ['All', ...categoryCounts.map(({ name }) => name)];
@@ -119,6 +122,10 @@ export default function App() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    productRailRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+  }, [searchQuery, selectedCategory, selectedCollection]);
 
   useEffect(() => {
     store.recordVisitorSession(pageViewUrl);
@@ -466,6 +473,7 @@ export default function App() {
     setSearchQuery('');
     setSelectedProduct(product);
     pixelService.trackViewContent(product);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCloseProductPage = () => {
@@ -566,6 +574,8 @@ export default function App() {
             retailerName={storeSettings.retailerName}
             purchaseButtonLabel={storeSettings.purchaseButtonLabel}
             shopName={storeSettings.shopName}
+            allProducts={products}
+            onSelectProduct={handleSelectProduct}
           />
         ) : (
           <main className="flex-1 flex items-center justify-center px-6 py-20 text-center">
@@ -730,10 +740,10 @@ export default function App() {
           </section>
         </main>
       ) : (
-      <main className="flex-1 min-w-0 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-20">
+      <main className="flex flex-1 min-w-0 max-w-7xl w-full flex-col gap-12 px-3 py-8 sm:gap-20 sm:px-6 sm:py-12 lg:px-8">
 
         {/* Section 1: Featured product categories */}
-        {selectedCategory === 'All' && selectedCollection === 'all-products' && <section id="trending-departments" className="space-y-6">
+        {selectedCategory === 'All' && selectedCollection === 'all-products' && <section id="trending-departments" className="order-2 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-600">
@@ -972,7 +982,7 @@ export default function App() {
         </section>}
 
         {/* Section 2: Product collections */}
-        <section id="deals" className="space-y-6 pt-4">
+        <section id="deals" className="order-1 space-y-6">
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div role="group" aria-label="Filter products by collection" className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
               {collectionOptions.map(({ id, label }) => (
@@ -1035,7 +1045,31 @@ export default function App() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+            <div className="relative">
+              <div className="absolute -top-[4.25rem] right-0 hidden items-center gap-2 sm:flex">
+                <button
+                  type="button"
+                  aria-label="Scroll products left"
+                  onClick={() => productRailRef.current?.scrollBy({ left: -productRailRef.current.clientWidth * 0.8, behavior: 'smooth' })}
+                  className="rounded-full border border-slate-300 bg-white p-2 text-slate-700 shadow-sm hover:border-amber-400 hover:bg-amber-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Scroll products right"
+                  onClick={() => productRailRef.current?.scrollBy({ left: productRailRef.current.clientWidth * 0.8, behavior: 'smooth' })}
+                  className="rounded-full border border-slate-300 bg-white p-2 text-slate-700 shadow-sm hover:border-amber-400 hover:bg-amber-50"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+              <div
+                ref={productRailRef}
+                className="grid auto-cols-[47%] grid-flow-col grid-rows-1 gap-3 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory scroll-smooth sm:gap-4 sm:auto-cols-[48%] lg:auto-cols-[31%] 2xl:auto-cols-[23%]"
+                aria-label="Scrollable product collection"
+                tabIndex={0}
+              >
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -1046,12 +1080,13 @@ export default function App() {
                   purchaseButtonLabel={storeSettings.purchaseButtonLabel}
                 />
               ))}
+              </div>
             </div>
           )}
         </section>
 
         {/* Section 3: Product comparisons */}
-        <div id="comparison">
+        <div id="comparison" className="order-3">
           <BuyerComparisonTable
             products={products}
             onSelectProduct={handleSelectProduct}
@@ -1064,7 +1099,7 @@ export default function App() {
 
         {/* Section 4: Video Lab Reviews Spotlight */}
         {videoReviewProducts.length > 0 && (
-          <section id="video-reviews" className="space-y-5 pt-4 sm:space-y-6">
+          <section id="video-reviews" className="order-4 space-y-5 sm:space-y-6">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,360px)] md:items-end md:gap-6">
               <div className="min-w-0">
                 <div className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
@@ -1147,7 +1182,7 @@ export default function App() {
         )}
 
         {/* Section 5: OmniChannel Social Concierge & Customer Inquiries */}
-        <section id="social-concierge" className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 lg:p-12 border border-slate-800 space-y-6">
+        <section id="social-concierge" className="order-5 space-y-6 rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-5 text-white sm:rounded-3xl sm:p-8 lg:p-12">
           <div className="max-w-2xl space-y-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
               Contact and product questions

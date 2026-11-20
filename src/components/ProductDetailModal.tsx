@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, ExternalLink, Star, Play, CheckCircle2, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check } from 'lucide-react';
+import { X, ExternalLink, Star, Play, CheckCircle2, ChevronLeft, ChevronRight, Images, ArrowLeft, Share2, Check, ArrowRight } from 'lucide-react';
 import { Product } from '../types';
 import { formatCurrency, getYouTubeEmbedUrl } from '../utils/helpers';
 import { getProductPath } from '../utils/productRoutes';
+import { ProductDescription } from './ProductDescription';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -14,6 +15,8 @@ interface ProductDetailModalProps {
   shopName: string;
   isPage?: boolean;
   selectedVariantId?: string;
+  allProducts?: Product[];
+  onSelectProduct?: (product: Product) => void;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -26,6 +29,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   shopName,
   isPage = false,
   selectedVariantId,
+  allProducts = [],
+  onSelectProduct,
 }) => {
   const hasVariants = Boolean(product?.variants?.length);
   const getVariantIndex = () => {
@@ -57,7 +62,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   useEffect(() => {
     setSelectedVariantIdx(getVariantIndex());
     setActiveImageIndex(0);
-    setActiveMedia(product?.videoType !== 'none' && Boolean(product?.videoUrl) ? 'video' : 'image');
+    setActiveMedia('image');
   }, [product?.id, selectedVariantId]);
 
   if (!product) return null;
@@ -114,6 +119,24 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     else handlePrevPhoto();
   };
 
+  const relatedProducts = allProducts
+    .filter((item) => item.id !== product.id)
+    .map((item) => {
+      const currentCategory = product.category.trim().toLocaleLowerCase();
+      const sameCategory = currentCategory && item.category.trim().toLocaleLowerCase() === currentCategory;
+      const stopWords = new Set(['about', 'with', 'from', 'your', 'this', 'that', 'the', 'and', 'for', 'into', 'over', 'under', 'wireless', 'premium']);
+      const productWords = new Set(`${product.title} ${product.brand}`
+        .toLocaleLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 3 && !stopWords.has(word)));
+      const overlap = new Set(`${item.title} ${item.brand}`
+        .toLocaleLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length > 3 && productWords.has(word)));
+      const sameBrand = product.brand.trim().toLocaleLowerCase() === item.brand.trim().toLocaleLowerCase();
+      return { item, score: (sameCategory ? 10 : 0) + (sameBrand ? 5 : 0) + overlap.size };
+    })
+    .filter(({ score }) => score >= 2)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map(({ item }) => item);
+
 
   return (
     <div className={isPage ? 'w-full flex-1 bg-slate-50 px-3 py-5 sm:px-6 sm:py-8' : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm overflow-y-auto p-0 sm:p-4 md:p-6'}>
@@ -160,7 +183,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Modal Body */}
         <div className={isPage ? 'grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6' : 'grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 p-3 sm:p-6 overflow-y-auto'}>
           {/* Left Column: Media Player (Images & Video Gallery) */}
-          <div className="order-2 space-y-3 md:order-none md:col-span-7">
+          <div className="order-1 space-y-3 md:order-none md:col-span-7">
             {/* Main Stage */}
             <div
               className={`relative w-full rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center touch-pan-y ${
@@ -289,7 +312,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
 
           {/* Right Column: Contiguous Purchase Module (PDP) */}
-          <div className="order-1 flex flex-col gap-6 self-start md:order-none md:col-span-5">
+          <div className="order-2 flex flex-col gap-6 self-start md:order-none md:col-span-5">
             <div className="space-y-4">
               {/* Product Title */}
               <h2 className="text-lg sm:text-xl font-extrabold text-slate-950 leading-snug">
@@ -391,6 +414,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   <span>Contact Us on Social Media</span>
                 </button>
 
+                {product.features.length > 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-800">Key Features</h3>
+                    <ul className="space-y-2 text-sm leading-relaxed text-slate-700">
+                      {product.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <p className="text-[10px] text-slate-400 text-center leading-tight">
                   You will continue to the retailer's website to complete your purchase. Price and availability may change.
                 </p>
@@ -401,21 +438,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </p>
               </div>
 
-              {/* Feature Highlights */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Key Specifications:
-                </span>
-                <ul className="space-y-2">
-                  {product.features.map((feat, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-xs text-slate-700">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
               <p className="border-t border-slate-100 pt-3 text-center text-[11px] text-slate-500">
                 Review shipping, return, and warranty details on the retailer's product page.
               </p>
@@ -423,18 +445,53 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           </div>
 
-          {/* Keep long-form copy below the media and purchase module on every screen size. */}
+          {/* Keep long-form copy below the image, title, and purchase module. */}
           <div className="order-3 space-y-2 border-t border-slate-100 pt-4 md:order-none md:col-span-12">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800">
               Product Description
             </h4>
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                {product.description ||
-                  'Product details have not been added yet.'}
-              </p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700 sm:p-5">
+              <ProductDescription description={product.description} className="space-y-4" />
             </div>
           </div>
+
+          {isPage && relatedProducts.length > 0 && onSelectProduct && (
+            <section className="order-4 space-y-4 border-t border-slate-200 pt-6 md:order-none md:col-span-12" aria-labelledby="related-products-title">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Keep exploring</p>
+                  <h4 id="related-products-title" className="mt-1 text-xl font-extrabold text-slate-950">
+                    Related products
+                  </h4>
+                </div>
+                <span className="text-xs text-slate-500">{product.category}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+                {relatedProducts.map((item) => (
+                  <article key={item.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <button type="button" onClick={() => onSelectProduct(item)} className="block w-full text-left">
+                      <div className="aspect-square bg-white p-3">
+                        <img src={item.image} alt={item.imageAlt || item.title} className="h-full w-full object-contain" loading="lazy" />
+                      </div>
+                      <div className="space-y-1 px-3 pb-3">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">{item.category}</span>
+                        <p className="line-clamp-2 text-xs font-bold leading-relaxed text-slate-900">{item.title}</p>
+                        <p className="text-sm font-extrabold text-slate-950">{formatCurrency(item.dealPrice)}</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onBuyNow(item, item.amazonUrl)}
+                      className="flex min-h-10 w-full items-center justify-center gap-1 border-t border-slate-200 bg-amber-400 px-2 py-2 text-[11px] font-bold text-slate-950 hover:bg-amber-500"
+                    >
+                      {item.productButtonLabel?.trim() || purchaseButtonLabel}
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

@@ -98,7 +98,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         if (didSwipe.current) return;
         onSelect(product);
       }}
-      className="group relative flex flex-col bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-amber-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+      className="group relative flex snap-start flex-col bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-amber-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
     >
       {/* Top Media Container - responsive aspect-square with object-contain so vertical bags (cat food, gym protein) are NEVER cropped */}
       <div
@@ -196,10 +196,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Content Container */}
-      <div className="flex flex-col flex-1 p-4 sm:p-5">
+      <div className="flex flex-col flex-1 p-2.5 sm:p-5">
         {/* Category & Rating Row */}
         <div className="flex items-center justify-between gap-1.5 mb-1.5">
-          <span className="inline-block px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/70 text-[10px] font-bold uppercase tracking-wider truncate max-w-[140px] sm:max-w-[170px]">
+          <span className="inline-block px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/70 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate max-w-[85px] sm:max-w-[170px]">
             {product.category || 'General'}
           </span>
           {product.rating > 0 && <div className="flex items-center gap-1 text-slate-700 text-xs shrink-0">
@@ -216,12 +216,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Brand Name */}
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate mb-1">
+        <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider truncate mb-1">
           {product.brand}
         </p>
 
         {/* Title */}
-        <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-snug mb-2">
+        <h3 className="text-[13px] sm:text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-snug mb-2">
           <a
             href={getProductPath(product)}
             onClick={(e) => {
@@ -239,25 +239,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </a>
         </h3>
 
-        {/* Prominent Product Description */}
-        {product.description ? (
-          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
-            {product.description}
-          </p>
-        ) : (
-          <p className="text-xs text-slate-400 italic line-clamp-2 leading-relaxed mb-3">
-            Product details are not available yet. Check the retailer's page for current information.
-          </p>
+        {product.features?.length > 0 && (
+          <ul aria-label="Key features" className="mb-2 space-y-1 text-[11px] leading-snug text-slate-600 sm:mb-3 sm:text-xs sm:leading-relaxed">
+            {product.features.slice(0, 2).map((feature, index) => (
+              <li key={index} className="flex items-start gap-1.5">
+                <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
+                <span className="line-clamp-2">{feature}</span>
+              </li>
+            ))}
+          </ul>
         )}
 
         {/* Product Variants Selector Chips (If variants exist) */}
         {hasVariants && (
-          <div className="mb-3 space-y-1.5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <div className="mb-2 space-y-1 sm:mb-3 sm:space-y-1.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-1 text-[10px] text-slate-500 sm:text-[11px]">
               <span className="font-semibold text-slate-700">Options / Sizes:</span>
-              <span className="text-amber-700 font-medium truncate max-w-[130px] sm:max-w-[150px]">{activeVariant?.name}</span>
+              <span className="text-amber-700 font-medium truncate max-w-[82px] sm:max-w-[150px]">{activeVariant?.name}</span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
               {product.variants!.slice(0, 4).map((variant, vIdx) => {
                 const isSelected = selectedVariantIdx === vIdx;
                 return (
@@ -269,14 +269,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       setSelectedVariantIdx(vIdx);
                       setCurrentImgIndex(0);
                     }}
-                    className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer border ${
+                    className={`shrink-0 px-1.5 sm:px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold transition-all cursor-pointer border ${
                       isSelected
                         ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-2xs font-bold'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                     }`}
                     title={variant.name}
                   >
-                    <span className="truncate max-w-[120px] inline-block">{variant.name}</span>
+                    <span className="truncate max-w-[70px] sm:max-w-[120px] inline-block">{variant.name}</span>
                   </button>
                 );
               })}
@@ -289,24 +289,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         )}
 
-        {/* Feature Highlights */}
-        {product.features && product.features.length > 0 && !hasVariants && (
-          <ul className="space-y-1 mb-4 flex-1 text-xs text-slate-600">
-            {product.features.slice(0, 2).map((feat, i) => (
-              <li key={i} className="flex items-start gap-1.5 line-clamp-1">
-                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <span className="truncate">{feat}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
         {/* Price & Buy Now Container */}
         <div className="pt-3 border-t border-slate-100 mt-auto space-y-3">
           <div className="flex items-baseline justify-between">
             <div className="space-y-0.5">
               <div className="flex items-baseline gap-2">
-                <span className="text-lg sm:text-xl font-extrabold text-slate-950 font-mono tabular-nums">
+                <span className="text-base sm:text-xl font-extrabold text-slate-950 font-mono tabular-nums">
                   {formatCurrency(currentDealPrice)}
                 </span>
                 {currentPrice > currentDealPrice && (

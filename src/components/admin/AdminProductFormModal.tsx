@@ -817,7 +817,7 @@ export const AdminProductFormModal: React.FC<AdminProductFormModalProps> = ({
             </div>
 
             <p className="text-[11px] text-slate-500">
-              Enter accurate product information. This appears on the product card and details page.
+              Enter accurate product information. This appears on the product card and details page. Use **text** for bold text, ## Heading for section titles, and separate lines for bullet points.
             </p>
 
             <textarea
