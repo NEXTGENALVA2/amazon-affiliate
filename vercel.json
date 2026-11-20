@@ -16,17 +16,6 @@
   ],
   "rewrites": [
     {
-      "source": "/",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Googlebot|bingbot|Google-InspectionTool|Viber|VKShare|Tumblr|Snapchat|Mastodon).*"
-        }
-      ],
-      "destination": "/api/home-preview"
-    },
-    {
       "source": "/blog",
       "has": [
         {
@@ -74,6 +63,19 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "routes": [
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Googlebot|bingbot|Google-InspectionTool|Viber|VKShare|Tumblr|Snapchat|Mastodon).*"
+        }
+      ],
+      "dest": "/api/home-preview"
     }
   ]
 }
