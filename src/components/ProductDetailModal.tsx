@@ -466,7 +466,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
                 <span className="text-xs text-slate-500">{product.category}</span>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 sm:gap-4">
                 {relatedProducts.map((item) => (
                   <article key={item.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                     <button type="button" onClick={() => onSelectProduct(item)} className="block w-full text-left">
@@ -476,6 +476,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <div className="space-y-1 px-3 pb-3">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">{item.category}</span>
                         <p className="line-clamp-2 text-xs font-bold leading-relaxed text-slate-900">{item.title}</p>
+                        {item.features?.length > 0 && (
+                          <ul aria-label="Key features" className="space-y-1 text-[10px] leading-snug text-slate-600 sm:text-[11px]">
+                            {item.features.slice(0, 2).map((feature, index) => (
+                              <li key={index} className="flex items-start gap-1">
+                                <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
+                                <span className="line-clamp-2">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         <p className="text-sm font-extrabold text-slate-950">{formatCurrency(item.dealPrice)}</p>
                       </div>
                     </button>

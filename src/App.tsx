@@ -740,7 +740,7 @@ export default function App() {
           </section>
         </main>
       ) : (
-      <main className="flex flex-1 min-w-0 max-w-7xl w-full flex-col gap-12 px-3 py-8 sm:gap-20 sm:px-6 sm:py-12 lg:px-8">
+      <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-12 px-3 py-8 sm:gap-20 sm:px-6 sm:py-12 lg:px-8">
 
         {/* Section 1: Featured product categories */}
         {selectedCategory === 'All' && selectedCollection === 'all-products' && <section id="trending-departments" className="order-2 space-y-6">
@@ -759,7 +759,7 @@ export default function App() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3">
             {/* Pillar 1: Cat Food / Pet Nutrition */}
             {catFoodProduct && (
               <div

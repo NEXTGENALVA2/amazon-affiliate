@@ -21,7 +21,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Viber|VKShare|Tumblr|Snapchat|Mastodon).*"
+          "value": ".*(facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|SkypeUriPreview|redditbot|Googlebot|bingbot|Google-InspectionTool|Viber|VKShare|Tumblr|Snapchat|Mastodon).*"
         }
       ],
       "destination": "/api/home-preview"

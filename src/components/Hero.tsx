@@ -118,7 +118,7 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
 
               {/* Product Media */}
-              <div className="relative mx-auto aspect-[9/16] w-full max-w-sm rounded-xl overflow-hidden bg-slate-950 border border-white/10 group">
+              <div className="relative mx-auto aspect-[9/16] w-full max-w-sm overflow-hidden rounded-xl border border-white/10 bg-slate-950 group md:aspect-video md:max-w-none">
                 {youtubeEmbedUrl ? (
                   <iframe
                     src={`${youtubeEmbedUrl}?controls=0&modestbranding=1&rel=0`}
