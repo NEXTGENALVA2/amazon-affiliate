@@ -99,6 +99,7 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const productRailRef = useRef<HTMLDivElement>(null);
+  const videoRailRef = useRef<HTMLDivElement>(null);
 
   const categoryCounts = getProductCategoryCounts(products);
   const categories = ['All', ...categoryCounts.map(({ name }) => name)];
@@ -1100,7 +1101,7 @@ export default function App() {
         {/* Section 4: Video Lab Reviews Spotlight */}
         {videoReviewProducts.length > 0 && (
           <section id="video-reviews" className="order-4 space-y-5 sm:space-y-6">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,360px)] md:items-end md:gap-6">
+            <div className="flex items-end justify-between gap-3 md:grid md:grid-cols-[minmax(0,1fr)_minmax(220px,360px)] md:gap-6">
               <div className="min-w-0">
                 <div className="text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
                   Product videos
@@ -1109,23 +1110,48 @@ export default function App() {
                   Watch product videos before you shop
                 </h2>
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 md:justify-self-end">
+              <p className="hidden text-xs sm:text-sm text-slate-500 md:block md:justify-self-end">
                 Video availability and content vary by product.
               </p>
+              {videoReviewProducts.length > 1 && (
+                <div className="flex shrink-0 items-center gap-2 md:hidden">
+                  <button
+                    type="button"
+                    aria-label="Scroll videos left"
+                    onClick={() => videoRailRef.current?.scrollBy({ left: -videoRailRef.current.clientWidth * 0.82, behavior: 'smooth' })}
+                    className="rounded-full border border-slate-300 bg-white p-2 text-slate-700 shadow-sm hover:border-amber-400 hover:bg-amber-50"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Scroll videos right"
+                    onClick={() => videoRailRef.current?.scrollBy({ left: videoRailRef.current.clientWidth * 0.82, behavior: 'smooth' })}
+                    className="rounded-full border border-slate-300 bg-white p-2 text-slate-700 shadow-sm hover:border-amber-400 hover:bg-amber-50"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${
+            <div
+              ref={videoRailRef}
+              className={`grid auto-cols-[82%] grid-flow-col grid-rows-1 gap-3 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory scroll-smooth sm:auto-cols-[48%] sm:gap-4 md:grid md:auto-cols-auto md:grid-flow-row md:grid-cols-2 md:overflow-visible md:pb-0 md:snap-none lg:gap-6 ${
               videoReviewProducts.length === 1
                 ? ''
                 : videoReviewProducts.length === 2
                   ? 'md:grid-cols-2'
                   : 'md:grid-cols-2 xl:grid-cols-3'
-            }`}>
+              }`}
+              aria-label="Scrollable product video reviews"
+              tabIndex={0}
+            >
               {videoReviewProducts.slice(0, 3).map((item) => (
                 <div
                   key={item.id}
                   onClick={() => handleSelectProduct(item)}
-                  className={`group w-full bg-white rounded-2xl sm:rounded-3xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer flex flex-col ${
+                  className={`group w-full snap-start bg-white rounded-2xl sm:rounded-3xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer flex flex-col ${
                     videoReviewProducts.length === 1 ? 'mx-auto max-w-2xl' : ''
                   }`}
                 >
