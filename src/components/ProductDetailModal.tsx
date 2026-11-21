@@ -466,9 +466,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
                 <span className="text-xs text-slate-500">{product.category}</span>
               </div>
-              <div className="grid grid-cols-2 items-start gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {relatedProducts.map((item) => (
-                  <article key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <article key={item.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
                     <button type="button" onClick={() => onSelectProduct(item)} className="flex w-full flex-col text-left">
                       <div className="aspect-square w-full bg-white p-3">
                         <img src={item.image} alt={item.imageAlt || item.title} className="h-full w-full object-contain" loading="lazy" />
@@ -486,17 +486,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                             ))}
                           </ul>
                         )}
-                        <p className="text-sm font-extrabold text-slate-950">{formatCurrency(item.dealPrice)}</p>
                       </div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => onBuyNow(item, item.amazonUrl)}
-                      className="flex min-h-10 w-full items-center justify-center gap-1 border-t border-slate-200 bg-amber-400 px-2 py-2 text-[11px] font-bold text-slate-950 hover:bg-amber-500"
-                    >
-                      {item.productButtonLabel?.trim() || purchaseButtonLabel}
-                      <ArrowRight className="h-3 w-3" />
-                    </button>
+                    <div className="mt-auto border-t border-slate-200 bg-white px-2 pt-2">
+                      <p className="mb-1 text-sm font-extrabold text-slate-950">{formatCurrency(item.dealPrice)}</p>
+                      <button
+                        type="button"
+                        onClick={() => onBuyNow(item, item.amazonUrl)}
+                        className="flex min-h-10 w-full items-center justify-center gap-1 rounded-t-lg bg-amber-400 px-2 py-2 text-[11px] font-bold text-slate-950 hover:bg-amber-500"
+                      >
+                        {item.productButtonLabel?.trim() || purchaseButtonLabel}
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>
