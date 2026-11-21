@@ -709,7 +709,7 @@ export default function App() {
             </div>
 
             {committedSearchResults.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid grid-cols-1 items-stretch gap-4 auto-rows-fr sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 2xl:grid-cols-4">
                 {committedSearchResults.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -760,7 +760,7 @@ export default function App() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-4 auto-rows-fr md:grid-cols-2 md:gap-6 xl:grid-cols-3">
             {/* Pillar 1: Cat Food / Pet Nutrition */}
             {catFoodProduct && (
               <div
@@ -1067,7 +1067,7 @@ export default function App() {
               </div>
               <div
                 ref={productRailRef}
-                className="grid auto-cols-[47%] grid-flow-col grid-rows-1 gap-3 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory scroll-smooth sm:gap-4 sm:auto-cols-[48%] lg:auto-cols-[31%] 2xl:auto-cols-[23%]"
+                className="grid auto-cols-[47%] grid-flow-col grid-rows-1 items-stretch gap-3 overflow-x-auto overscroll-x-contain pb-3 snap-x snap-mandatory scroll-smooth sm:gap-4 sm:auto-cols-[48%] lg:auto-cols-[31%] 2xl:auto-cols-[23%]"
                 aria-label="Scrollable product collection"
                 tabIndex={0}
               >
