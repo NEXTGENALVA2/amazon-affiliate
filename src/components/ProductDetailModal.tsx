@@ -466,18 +466,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
                 <span className="text-xs text-slate-500">{product.category}</span>
               </div>
-              <div className="grid grid-cols-2 items-stretch gap-3 auto-rows-fr sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 items-start gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {relatedProducts.map((item) => (
-                  <article key={item.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-                    <button type="button" onClick={() => onSelectProduct(item)} className="flex w-full flex-1 flex-col text-left">
+                  <article key={item.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <button type="button" onClick={() => onSelectProduct(item)} className="flex w-full flex-col text-left">
                       <div className="aspect-square w-full bg-white p-3">
                         <img src={item.image} alt={item.imageAlt || item.title} className="h-full w-full object-contain" loading="lazy" />
                       </div>
-                      <div className="flex flex-1 flex-col space-y-1 px-3 pb-3">
+                      <div className="flex flex-col space-y-1 px-3 pb-3">
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">{item.category}</span>
-                        <p className="min-h-[2.4rem] line-clamp-2 text-xs font-bold leading-relaxed text-slate-900">{item.title}</p>
+                        <p className="line-clamp-2 text-xs font-bold leading-relaxed text-slate-900">{item.title}</p>
                         {item.features?.length > 0 && (
-                          <ul aria-label="Key features" className="min-h-[3.25rem] space-y-1 text-[10px] leading-snug text-slate-600 sm:text-[11px]">
+                          <ul aria-label="Key features" className="space-y-1 text-[10px] leading-snug text-slate-600 sm:text-[11px]">
                             {item.features.slice(0, 2).map((feature, index) => (
                               <li key={index} className="flex items-start gap-1">
                                 <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
@@ -486,7 +486,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                             ))}
                           </ul>
                         )}
-                        <p className="mt-auto text-sm font-extrabold text-slate-950">{formatCurrency(item.dealPrice)}</p>
+                        <p className="text-sm font-extrabold text-slate-950">{formatCurrency(item.dealPrice)}</p>
                       </div>
                     </button>
                     <button
