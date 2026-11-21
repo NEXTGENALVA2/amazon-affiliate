@@ -751,7 +751,7 @@ export default function App() {
                 <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
                 <span>Featured categories</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">
+              <h2 className="break-words text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">
                 Explore products by category
               </h2>
             </div>

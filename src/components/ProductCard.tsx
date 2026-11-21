@@ -221,7 +221,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </p>
 
         {/* Title */}
-        <h3 className="min-h-[2.75rem] text-[13px] sm:min-h-[2.5rem] sm:text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-snug mb-2">
+        <h3 className="min-h-[2.75rem] text-[13px] break-words sm:min-h-[2.5rem] sm:text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-snug mb-2">
           <a
             href={getProductPath(product)}
             onClick={(e) => {
