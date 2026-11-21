@@ -184,9 +184,13 @@ export default async function handler(request: IncomingMessage, response: Server
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapedUrl}">
     ${productImagePreload}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
-    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:locale" content="en_US">
     <meta property="og:type" content="product">

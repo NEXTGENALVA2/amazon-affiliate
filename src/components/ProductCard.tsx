@@ -98,7 +98,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         if (didSwipe.current) return;
         onSelect(product);
       }}
-      className="group relative flex snap-start flex-col bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-amber-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
+      className="group relative flex h-full min-h-0 snap-start flex-col bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-amber-400 hover:shadow-lg transition-all duration-200 cursor-pointer"
     >
       {/* Top Media Container - responsive aspect-square with object-contain so vertical bags (cat food, gym protein) are NEVER cropped */}
       <div
@@ -221,7 +221,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </p>
 
         {/* Title */}
-        <h3 className="text-[13px] sm:text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-snug mb-2">
+        <h3 className="min-h-[2.75rem] text-[13px] sm:min-h-[2.5rem] sm:text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-snug mb-2">
           <a
             href={getProductPath(product)}
             onClick={(e) => {
@@ -240,7 +240,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </h3>
 
         {product.features?.length > 0 && (
-          <ul aria-label="Key features" className="mb-2 space-y-1 text-[11px] leading-snug text-slate-600 sm:mb-3 sm:text-xs sm:leading-relaxed">
+          <ul aria-label="Key features" className="mb-2 min-h-[3.25rem] space-y-1 text-[11px] leading-snug text-slate-600 sm:mb-3 sm:min-h-[3.5rem] sm:text-xs sm:leading-relaxed">
             {product.features.slice(0, 2).map((feature, index) => (
               <li key={index} className="flex items-start gap-1.5">
                 <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />

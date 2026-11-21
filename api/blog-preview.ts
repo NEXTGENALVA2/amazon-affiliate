@@ -107,9 +107,13 @@ const renderArticle = (article: (typeof BLOG_ARTICLES)[number], origin: string, 
     <meta name="theme-color" content="#0f172a">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${escapeHtml(url)}">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
-    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:locale" content="en_US">
     <meta property="og:type" content="article">
@@ -238,9 +242,13 @@ const renderIndex = (origin: string, products: Product[]): string => {
     <meta name="theme-color" content="#0f172a">
     <meta name="robots" content="index,follow">
     <link rel="canonical" href="${url}">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
-    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <meta property="og:site_name" content="Kefayaan">
     <meta property="og:locale" content="en_US">
     <meta property="og:type" content="website">
